@@ -98,7 +98,7 @@ struct Engine::Impl {
 	std::map<int, Timer> timers;
 	int nextTimer = 1;
 	JSValue api = JS_UNDEFINED;   // globalThis.LatexAnywhereEngine
-	JSValue fnReset = JS_UNDEFINED, fnKey = JS_UNDEFINED, fnInsert = JS_UNDEFINED, fnSel = JS_UNDEFINED, fnMarks = JS_UNDEFINED;
+	JSValue fnReset = JS_UNDEFINED, fnKey = JS_UNDEFINED, fnInsert = JS_UNDEFINED, fnSel = JS_UNDEFINED, fnMarks = JS_UNDEFINED, fnPaste = JS_UNDEFINED;
 	JSAtom aDoc, aAnchor, aHead, aHandled, aCommit, aCancel;
 };
 
@@ -177,7 +177,7 @@ Engine::Engine() : impl_(new Impl) {}
 Engine::~Engine() {
 	if (ctx_) {
 		for (auto& [id, t] : impl_->timers) JS_FreeValue(ctx_, t.fn);
-		for (JSValue v : {impl_->api, impl_->fnReset, impl_->fnKey, impl_->fnInsert, impl_->fnSel, impl_->fnMarks}) JS_FreeValue(ctx_, v);
+		for (JSValue v : {impl_->api, impl_->fnReset, impl_->fnKey, impl_->fnInsert, impl_->fnSel, impl_->fnMarks, impl_->fnPaste}) JS_FreeValue(ctx_, v);
 		for (JSAtom a : {impl_->aDoc, impl_->aAnchor, impl_->aHead, impl_->aHandled, impl_->aCommit, impl_->aCancel}) JS_FreeAtom(ctx_, a);
 		JS_FreeContext(ctx_);
 	}
@@ -218,7 +218,7 @@ size_t Engine::MemoryUsed() const {
 	return static_cast<size_t>(u.malloc_size);
 }
 
-bool Engine::Init(const std::string& script, bool isBytecode, const std::string& settingsJson, std::string* error) {
+bool Engine::Init(const std::vector<Script>& scripts, const std::string& settingsJson, std::string* error) {
 	rt_ = JS_NewRuntime();
 	if (!rt_) { if (error) *error = "JS_NewRuntime failed"; return false; }
 	JS_SetMemoryLimit(rt_, 256u * 1024 * 1024);   // 防失控：引擎正常用量是几 MB
@@ -245,15 +245,17 @@ bool Engine::Init(const std::string& script, bool isBytecode, const std::string&
 	if (JS_IsException(r)) return fail("prelude");
 	JS_FreeValue(ctx_, r);
 
-	if (isBytecode) {
-		JSValue fn = JS_ReadObject(ctx_, reinterpret_cast<const uint8_t*>(script.data()), script.size(), JS_READ_OBJ_BYTECODE);
-		if (JS_IsException(fn)) return fail("read bytecode");
-		r = JS_EvalFunction(ctx_, fn);
-	} else {
-		r = JS_Eval(ctx_, script.data(), script.size(), "engine.js", JS_EVAL_TYPE_GLOBAL);
+	for (const Script& sc : scripts) {
+		if (sc.bytecode) {
+			JSValue fn = JS_ReadObject(ctx_, reinterpret_cast<const uint8_t*>(sc.data.data()), sc.data.size(), JS_READ_OBJ_BYTECODE);
+			if (JS_IsException(fn)) return fail(sc.name);
+			r = JS_EvalFunction(ctx_, fn);
+		} else {
+			r = JS_Eval(ctx_, sc.data.data(), sc.data.size(), sc.name, JS_EVAL_TYPE_GLOBAL);
+		}
+		if (JS_IsException(r)) return fail(sc.name);
+		JS_FreeValue(ctx_, r);
 	}
-	if (JS_IsException(r)) return fail("engine");
-	JS_FreeValue(ctx_, r);
 
 	impl_->api = JS_GetPropertyStr(ctx_, g, "LatexAnywhereEngine");
 	if (!JS_IsObject(impl_->api)) { JS_FreeValue(ctx_, g); if (error) *error = "LatexAnywhereEngine missing"; return false; }
@@ -262,6 +264,7 @@ bool Engine::Init(const std::string& script, bool isBytecode, const std::string&
 	impl_->fnInsert = JS_GetPropertyStr(ctx_, impl_->api, "insertText");
 	impl_->fnSel = JS_GetPropertyStr(ctx_, impl_->api, "setSelection");
 	impl_->fnMarks = JS_GetPropertyStr(ctx_, impl_->api, "marks");
+	impl_->fnPaste = JS_GetPropertyStr(ctx_, impl_->api, "paste");
 	impl_->aDoc = JS_NewAtom(ctx_, "doc");
 	impl_->aAnchor = JS_NewAtom(ctx_, "anchor");
 	impl_->aHead = JS_NewAtom(ctx_, "head");
@@ -306,7 +309,7 @@ EditResult Engine::CallEdit(const char* fn, int argc, void* argvp) {
 	EditResult out;
 	JSValue* argv = static_cast<JSValue*>(argvp);
 	JSValue f = !std::strcmp(fn, "reset") ? impl_->fnReset : !std::strcmp(fn, "key") ? impl_->fnKey
-		: !std::strcmp(fn, "insertText") ? impl_->fnInsert : impl_->fnSel;
+		: !std::strcmp(fn, "insertText") ? impl_->fnInsert : !std::strcmp(fn, "paste") ? impl_->fnPaste : impl_->fnSel;
 	JSValue r = JS_Call(ctx_, f, impl_->api, argc, argv);
 	for (int i = 0; i < argc; i++) JS_FreeValue(ctx_, argv[i]);
 	if (JS_IsException(r)) { out.error = TakeException(ctx_); return out; }
@@ -343,6 +346,39 @@ EditResult Engine::InsertText(const std::u16string& text) {
 	JSValue argv[1] = {JS_NewStringLen(ctx_, u8.data(), u8.size())};
 	EditResult r = CallEdit("insertText", 1, argv);
 	return r;
+}
+
+EditResult Engine::Paste(const std::u16string& text) {
+	std::string u8 = Utf16ToUtf8(text);
+	JSValue argv[1] = {JS_NewStringLen(ctx_, u8.data(), u8.size())};
+	return CallEdit("paste", 1, argv);
+}
+
+bool Engine::CallString(const char* obj, const char* fn, const std::u16string& arg, std::u16string* out, std::string* error) {
+	JSValue g = JS_GetGlobalObject(ctx_);
+	JSValue o = JS_GetPropertyStr(ctx_, g, obj);
+	JSValue f = JS_GetPropertyStr(ctx_, o, fn);
+	bool ok = false;
+	if (JS_IsFunction(ctx_, f)) {
+		std::string u8 = Utf16ToUtf8(arg);
+		JSValue a = JS_NewStringLen(ctx_, u8.data(), u8.size());
+		JSValue r = JS_Call(ctx_, f, o, 1, &a);
+		JS_FreeValue(ctx_, a);
+		if (JS_IsException(r)) {
+			if (error) *error = TakeException(ctx_);
+		} else {
+			size_t len = 0;
+			if (const char* s = JS_ToCStringLen(ctx_, &len, r)) { *out = Utf8ToUtf16(s, len); JS_FreeCString(ctx_, s); ok = true; }
+		}
+		JS_FreeValue(ctx_, r);
+	} else if (error) {
+		*error = std::string(obj) + "." + fn + " missing";
+	}
+	JS_FreeValue(ctx_, f);
+	JS_FreeValue(ctx_, o);
+	JS_FreeValue(ctx_, g);
+	DrainJobs();
+	return ok;
 }
 
 EditResult Engine::SetSelection(int anchor, int head) {

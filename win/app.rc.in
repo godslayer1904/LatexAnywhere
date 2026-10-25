@@ -1,0 +1,33 @@
+#include <windows.h>
+#include "resource.h"
+
+IDI_APP ICON "@LA_SRC@/win/res/app.ico"
+IDR_ENGINE RCDATA "@LA_BYTECODE_DIR@/engine.qbc"
+IDR_MATH RCDATA "@LA_BYTECODE_DIR@/math.qbc"
+IDR_HELP_ZH RCDATA "@LA_SRC@/win/help/zh-CN.html"
+IDR_HELP_EN RCDATA "@LA_SRC@/win/help/en.html"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "@LA_SRC@/win/app.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION @LA_VER_COMMA@
+PRODUCTVERSION @LA_VER_COMMA@
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName", "LatexAnywhere"
+      VALUE "FileDescription", "LatexAnywhere - type LaTeX math anywhere"
+      VALUE "FileVersion", "@LA_VERSION@"
+      VALUE "ProductName", "LatexAnywhere"
+      VALUE "ProductVersion", "@LA_VERSION@"
+      VALUE "LegalCopyright", "MIT License"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

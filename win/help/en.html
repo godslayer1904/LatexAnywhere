@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LatexAnywhere Help</title>
+<style>
+  :root { --bg: #ffffff; --fg: #222; --muted: #666; --card: #f5f5f7; --accent: #7f6df2; --border: #e2e2e6; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1e1e1e; --fg: #dadada; --muted: #9a9a9a; --card: #262626; --accent: #a99cff; --border: #363636; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.7 "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 24px; margin: 0 0 4px; } h1 span { color: var(--accent); }
+  p.sub { color: var(--muted); margin: 0 0 24px; }
+  h2 { font-size: 17px; margin: 28px 0 10px; border-left: 4px solid var(--accent); padding-left: 10px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; }
+  td, th { padding: 9px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-weight: 600; color: var(--muted); font-size: 13px; }
+  kbd { display: inline-block; padding: 1px 7px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--bg); font: 13px Consolas, monospace; white-space: nowrap; }
+  code { font: 13px Consolas, monospace; background: var(--card); padding: 1px 5px; border-radius: 4px; }
+  ul { padding-left: 20px; } li { margin: 4px 0; }
+  .tip { background: var(--card); border-radius: 8px; padding: 10px 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1><span>∑</span> LatexAnywhere Help</h1>
+  <p class="sub">Type math in any text box, the Obsidian + Latex Suite way.</p>
+
+  <h2>Basics</h2>
+  <ol>
+    <li>In any text box (chat apps, Word, browsers, Notepad…) press <kbd>Alt</kbd>+<kbd>L</kbd>; the formula box pops up next to the cursor.</li>
+    <li>Type your formula. The box runs the original Latex Suite: <code>x^2</code> becomes <code>x^{2}</code>, <code>//</code> makes a fraction, <kbd>Tab</kbd> jumps to the next placeholder.</li>
+    <li>The rendered formula is shown live above.</li>
+    <li>Insert it with any of the keys below; it lands where your cursor was.</li>
+  </ol>
+  <p class="tip">Select text first and press <kbd>Alt</kbd>+<kbd>L</kbd> to edit it; inserting replaces the selection.</p>
+
+  <h2>Insert</h2>
+  <table>
+    <tr><th>Key</th><th>Inserts</th><th>For</th></tr>
+    <tr><td><kbd>Enter</kbd></td><td>the formula <code>x^{2}</code></td><td>LaTeX sources, Overleaf</td></tr>
+    <tr><td><kbd>Alt</kbd>+<kbd>Enter</kbd></td><td>inline math with <code>$</code>: <code>$x^{2}$</code></td><td>Typora, Obsidian, Markdown</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Unicode characters <code>x²</code></td><td>chat apps and other places without math rendering</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>a native Word equation (editable)</td><td>Word, PowerPoint</td></tr>
+    <tr><td><kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>a new line in the box</td><td>multi-line formulas</td></tr>
+    <tr><td><kbd>Esc</kbd> or <kbd>Alt</kbd>+<kbd>L</kbd> again</td><td>cancel, insert nothing</td><td></td></tr>
+  </table>
+
+  <h2>Input methods</h2>
+  <ul>
+    <li>进框时自动切成英文，打公式不用手动切Input methods；框里要打中文时按 <kbd>Shift</kbd> 切换。</li>
+    <li>Back in your text box, the IME returns to its previous language.</li>
+  </ul>
+
+  <h2>The box</h2>
+  <ul>
+    <li>It grows with its content and wraps long lines.</li>
+    <li>Drag it by any area outside the text.</li>
+    <li>Follows the system dark / light theme.</li>
+  </ul>
+
+  <h2>Tray and safety</h2>
+  <ul>
+    <li>It runs in the system tray (purple ∑ icon). Right-click to toggle Start with Windows or Quit.</li>
+    <li>Emergency quit: <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd>, works even if the tray does not respond.</li>
+    <li>It watches its own memory and CPU and restarts itself if anything goes wrong; a crash recovers within a second.</li>
+  </ul>
+</main>
+</body>
+</html>

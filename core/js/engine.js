@@ -73,6 +73,12 @@ function key(name, shift = false, ctrl = false, alt = false) {
 	return snapshot(handled);
 }
 
+// 粘贴：与 CodeMirror 的粘贴同一种事务（userEvent: input.paste）
+function paste(text) {
+	view.dispatch(view.state.replaceSelection(text), { userEvent: "input.paste", scrollIntoView: true });
+	return snapshot(true);
+}
+
 function setSelection(anchor, head) { view.dispatch({ selection: { anchor, head: head ?? anchor } }); return snapshot(true); }
 
 // 原生端用：插件给出的标记装饰（括号配色、光标所在括号、$ 高亮）
@@ -88,4 +94,4 @@ function marks() {
 	return out;
 }
 
-globalThis.LatexAnywhereEngine = { init, reset, key, insertText, setSelection, marks, get state() { return view.state; } };
+globalThis.LatexAnywhereEngine = { init, reset, key, insertText, paste, setSelection, marks, get state() { return view.state; } };

@@ -1,0 +1,1 @@
+{"name":"latexanywhere-mathjax","private":true,"devDependencies":{"esbuild":"^0.25.0","mathjax-full":"3.2.2"},"dependencies":{"unicodeit":"^0.7.5"}}

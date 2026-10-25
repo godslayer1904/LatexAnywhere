@@ -32,14 +32,21 @@ public:
 	Engine(const Engine&) = delete;
 	Engine& operator=(const Engine&) = delete;
 
-	// script：engine.js 源码或 QuickJS 字节码；settingsJson：Latex Suite 的 data.json 内容，空则用默认设置
-	bool Init(const std::string& script, bool isBytecode, const std::string& settingsJson, std::string* error);
+	struct Script { std::string data; bool bytecode; const char* name; };
+	// scripts：engine.js、math.js 等（源码或 QuickJS 字节码）；settingsJson：Latex Suite 的 data.json 内容，空则用默认设置
+	bool Init(const std::vector<Script>& scripts, const std::string& settingsJson, std::string* error);
+	bool Init(const std::string& script, bool isBytecode, const std::string& settingsJson, std::string* error) {
+		return Init({{script, isBytecode, "engine.js"}}, settingsJson, error);
+	}
 
 	EditResult Reset(const std::u16string& doc, int anchor, int head);
 	EditResult Key(const char* name, bool shift, bool ctrl, bool alt);
 	EditResult InsertText(const std::u16string& text);
+	EditResult Paste(const std::u16string& text);
 	EditResult SetSelection(int anchor, int head);
 	std::vector<Mark> Marks();
+	// 调用 globalThis[obj][fn](arg)，返回字符串结果（失败返回 false，error 里是原因）
+	bool CallString(const char* obj, const char* fn, const std::u16string& arg, std::u16string* out, std::string* error);
 
 	// 运行到期的定时器与微任务（宿主在空闲时调用）
 	void RunPending();

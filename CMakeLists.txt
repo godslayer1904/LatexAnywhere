@@ -23,3 +23,32 @@ target_link_libraries(la_compile PRIVATE la_core)
 
 add_executable(la_difftest tests/diff/difftest.cpp)
 target_link_libraries(la_difftest PRIVATE la_core)
+
+# ---------------- Windows 程序 ----------------
+if(WIN32)
+  set(LA_VERSION "0.9.0")
+  string(REPLACE "." "," LA_VER_COMMA "${LA_VERSION},0")
+  set(LA_SRC "${CMAKE_SOURCE_DIR}")
+  # 引擎字节码：默认用本次构建的 la_compile 生成；交叉编译时由 -DLA_COMPILER= 指定能在本机运行的 la_compile
+  set(LA_BYTECODE_DIR "${CMAKE_BINARY_DIR}/bytecode")
+  if(LA_COMPILER)
+    set(_compiler "${LA_COMPILER}")
+    set(_dep "")
+  else()
+    set(_compiler $<TARGET_FILE:la_compile>)
+    set(_dep la_compile)
+  endif()
+  add_custom_command(OUTPUT ${LA_BYTECODE_DIR}/engine.qbc ${LA_BYTECODE_DIR}/math.qbc
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${LA_BYTECODE_DIR}
+    COMMAND ${_compiler} ${CMAKE_SOURCE_DIR}/core/js/dist/engine.js ${LA_BYTECODE_DIR}/engine.qbc
+    COMMAND ${_compiler} ${CMAKE_SOURCE_DIR}/core/mathjax/dist/math.js ${LA_BYTECODE_DIR}/math.qbc
+    DEPENDS ${_dep} ${CMAKE_SOURCE_DIR}/core/js/dist/engine.js ${CMAKE_SOURCE_DIR}/core/mathjax/dist/math.js
+    COMMENT "Compiling engine bytecode")
+  configure_file(win/app.rc.in ${CMAKE_BINARY_DIR}/app.rc @ONLY)
+  set_source_files_properties(${CMAKE_BINARY_DIR}/app.rc PROPERTIES OBJECT_DEPENDS "${LA_BYTECODE_DIR}/engine.qbc;${LA_BYTECODE_DIR}/math.qbc")
+  add_executable(LatexAnywhere WIN32 win/main.cpp win/box.cpp win/sysio.cpp win/preview.cpp win/util.cpp ${CMAKE_BINARY_DIR}/app.rc)
+  target_include_directories(LatexAnywhere PRIVATE win)
+  target_compile_definitions(LatexAnywhere PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+  target_link_options(LatexAnywhere PRIVATE /MANIFEST:NO)
+  target_link_libraries(LatexAnywhere PRIVATE la_core d2d1 dwrite dwmapi imm32 oleacc comctl32 dbghelp psapi shlwapi shell32 ole32 oleaut32 uuid)
+endif()

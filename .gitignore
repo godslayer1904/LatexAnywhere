@@ -9,3 +9,4 @@ CMakeUserPresets.json
 node_modules/
 /core/js/dist/
 /tests/diff/fails.json
+/tests/e2e/results/
