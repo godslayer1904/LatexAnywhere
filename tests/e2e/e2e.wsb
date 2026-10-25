@@ -1,5 +1,5 @@
 <Configuration>
-  <vGPU>Enable</vGPU>
+  <vGPU>Disable</vGPU>
   <Networking>Disable</Networking>
   <ClipboardRedirection>Disable</ClipboardRedirection>
   <MappedFolders>
