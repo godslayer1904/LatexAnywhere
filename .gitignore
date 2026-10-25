@@ -4,3 +4,8 @@
 *.user
 .vs/
 CMakeUserPresets.json
+/tests/golden/user*.jsonl
+/tests/golden/try.jsonl
+node_modules/
+/core/js/dist/
+/tests/diff/fails.json

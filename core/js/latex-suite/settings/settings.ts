@@ -1,0 +1,180 @@
+import { Snippet } from "../snippets/snippets";
+import { Environment } from "../snippets/environment";
+import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
+import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
+import * as v from "valibot"
+
+export type snippetDebugLevel = "off" | "info" | "verbose";
+
+type CMKeyMap = string;
+type VimKeyMap = string;
+
+export interface LatexSuiteBasicSettings {
+	snippetsEnabled: boolean;
+	suppressSnippetTriggerOnIME: boolean;
+	suppressIMEWarning: boolean;
+	removeSnippetWhitespace: boolean;
+	autoDelete$: boolean;
+	loadSnippetsFromFile: boolean;
+	loadSnippetVariablesFromFile: boolean;
+	snippetsFileLocation: string;
+	snippetVariablesFileLocation: string;
+	autofractionEnabled: boolean;
+	concealEnabled: boolean;
+	concealRevealTimeout: number;
+	colorPairedBracketsEnabled: boolean;
+	highlightCursorBracketsEnabled: boolean;
+	mathPreviewEnabled: boolean;
+	mathPreviewPositionIsAbove: boolean;
+	mathPreviewCursor: string;
+	mathPreviewBracketHighlighting: boolean;
+	mathPreviewLivePreviewDisplay: boolean;
+	autofractionSymbol: string;
+	autofractionBreakingChars: string;
+	matrixShortcutsEnabled: boolean;
+	taboutEnabled: boolean;
+	taboutExitEquationOnlyOnEOL: boolean;
+	autoEnlargeBrackets: boolean;
+	autoEnlargeBracketsSpace: boolean;
+	wordDelimiters: string;
+	snippetDebug: snippetDebugLevel;
+	vimEnabled: boolean;
+	vimSelectMode: VimKeyMap;
+	vimVisualMode: VimKeyMap;
+	vimMatrixEnter: VimKeyMap;
+	snippetRecursion: number;
+	snippetIMEVersion: boolean;
+	highlightDollarEnabled: boolean;
+}
+
+/** triggers following the same format as https://codemirror.net/docs/ref/#view.KeyBinding */
+export interface LatexSuiteCMKeymapSettings {
+	snippetsTrigger: CMKeyMap;
+	snippetNextTabstopTrigger: CMKeyMap;
+	snippetPreviousTabstopTrigger: CMKeyMap;
+	taboutTrigger: CMKeyMap;
+}
+
+/**
+ * Settings that require further processing (e.g. conversion to an array) before being used.
+ */
+export interface LatexSuiteRawSettings {
+	autofractionExcludedEnvs: string;
+	matrixShortcutsEnvNames: string;
+	matrixShortcutsMacroNames: string;
+	taboutClosingSymbols: string;
+	autoEnlargeBracketsTriggers: string;
+	forceMathLanguages: string;
+}
+
+interface LatexSuiteParsedSettings {
+	autofractionExcludedEnvs: Environment[];
+	matrixShortcutsEnvNames: string[];
+	matrixShortcutsMacroNames: string[];
+	taboutClosingSymbols: Set<string>;
+	autoEnlargeBracketsTriggers: string[];
+	forceMathLanguages: string[];
+}
+
+export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings & LatexSuiteCMKeymapSettings;
+export type LatexSuiteCMSettings = {snippets: Snippet[]} & LatexSuiteBasicSettings & LatexSuiteParsedSettings & LatexSuiteCMKeymapSettings;
+
+export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
+	snippets: DEFAULT_SNIPPETS,
+	snippetVariables: DEFAULT_SNIPPET_VARIABLES,
+
+	// Basic settings
+	snippetsEnabled: true,
+	snippetsTrigger: "Tab",
+	snippetNextTabstopTrigger: "Tab",
+	snippetPreviousTabstopTrigger: "Shift-Tab",
+	suppressSnippetTriggerOnIME: true,
+	suppressIMEWarning: false,
+	removeSnippetWhitespace: true,
+	autoDelete$: true,
+	loadSnippetsFromFile: false,
+	loadSnippetVariablesFromFile: false,
+	snippetsFileLocation: "",
+	snippetVariablesFileLocation: "",
+	concealEnabled: false,
+	concealRevealTimeout: 0,
+	colorPairedBracketsEnabled: true,
+	highlightCursorBracketsEnabled: true,
+	mathPreviewEnabled: true,
+	mathPreviewPositionIsAbove: true,
+	mathPreviewCursor: "▶",
+	mathPreviewBracketHighlighting: false,
+	mathPreviewLivePreviewDisplay: false,
+	autofractionEnabled: true,
+	autofractionSymbol: "\\frac",
+	autofractionBreakingChars: "+-=\t",
+	matrixShortcutsEnabled: true,
+	taboutEnabled: true,
+	taboutExitEquationOnlyOnEOL: true,
+	taboutTrigger: "Tab",
+	autoEnlargeBrackets: true,
+	autoEnlargeBracketsSpace: true,
+	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$'\"|`<>*^%#@&",
+
+	// Raw settings
+	autofractionExcludedEnvs:
+	`[
+		["^{", "}"],
+		["\\\\pu{", "}"]
+	]`,
+	matrixShortcutsEnvNames: "pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
+	matrixShortcutsMacroNames: "eqalign",
+	taboutClosingSymbols: "), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
+	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
+	forceMathLanguages: "math",
+	snippetDebug: "off",
+	vimEnabled: false,
+	vimSelectMode: "<C-g>",
+	vimVisualMode: "<C-g>",
+	vimMatrixEnter: "o",
+	snippetRecursion: 0,
+	snippetIMEVersion: false,
+	highlightDollarEnabled: true,
+}
+
+const EnvironmentSchema = v.pipe(
+	v.string(),
+	v.parseJson(),
+	v.array(v.looseTuple([v.string(), v.string()], "Every item needs to be an array with 2 items"), "Needs to be an array [item1,item2]"),
+	v.mapItems(([openSymbol, closeSymbol]) => ({ openSymbol, closeSymbol })),
+);
+
+export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
+
+	function strToArray(str: string) {
+		return str.replace(/\s/g,"").split(",");
+	}
+
+	function getAutofractionExcludedEnvs(envsStr: string) {
+		let envs: Environment[] = [];
+
+		try {
+			envs = v.parse(EnvironmentSchema, envsStr);
+		}
+		catch (e) {
+			console.error(e);
+		}
+
+		return envs;
+	}
+
+	return {
+		...settings,
+
+		// Override raw settings with parsed settings
+		snippets: snippets,
+		autofractionExcludedEnvs: getAutofractionExcludedEnvs(settings.autofractionExcludedEnvs),
+		matrixShortcutsEnvNames: strToArray(settings.matrixShortcutsEnvNames),
+		matrixShortcutsMacroNames: strToArray(settings.matrixShortcutsMacroNames),
+		taboutClosingSymbols: new Set<string>(strToArray(settings.taboutClosingSymbols)),
+		// Add backslash to triggers that are LaTeX commands
+		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers)
+			.map(trigger => /[A-Za-z]+/.test(trigger) ? `\\${trigger}` : trigger), 
+		forceMathLanguages: strToArray(settings.forceMathLanguages),
+	}
+}

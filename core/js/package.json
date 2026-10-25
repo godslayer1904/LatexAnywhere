@@ -1,0 +1,23 @@
+{
+  "name": "latexanywhere-core-js",
+  "private": true,
+  "description": "Headless build of Obsidian Latex Suite 1.12.8 logic for the native LatexAnywhere host",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/state": "^6.5.2",
+    "@lezer/common": "^1.2.3",
+    "@lezer/highlight": "^1.2.1",
+    "@lezer/lr": "^1.4.2",
+    "@lezer/markdown": "^1.6.4",
+    "esbuild": "^0.25.0",
+    "esbuild-plugin-inline-import": "^1.0.2",
+    "valibot": "^1.4.2"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@lezer/generator": "^1.8.1"
+  }
+}

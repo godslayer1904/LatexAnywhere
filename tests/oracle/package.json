@@ -1,0 +1,23 @@
+{
+  "name": "latexanywhere-oracle",
+  "private": true,
+  "type": "module",
+  "description": "Runs the original Obsidian Latex Suite 1.12.8 (unmodified) in CodeMirror 6 + jsdom to produce golden results for differential tests",
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.4",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "6.38.8",
+    "@lezer/common": "^1.5.4",
+    "@lezer/highlight": "^1.2.5",
+    "@lezer/lr": "^1.4.11",
+    "jsdom": "^30.1.3",
+    "randexp": "^0.5.3"
+  },
+  "overrides": {
+    "@codemirror/view": "6.38.8"
+  }
+}
