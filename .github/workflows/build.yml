@@ -107,7 +107,7 @@ jobs:
       - name: Build installer (Inno Setup)
         shell: pwsh
         run: |
-          $v = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}".TrimStart("v") } else { "0.9.0-dev.${{ github.run_number }}" }
+          $v = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}".TrimStart("v") } else { "1.0.0-dev.${{ github.run_number }}" }
           $env:LA_VERSION = $v
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\LatexAnywhere.iss
           Copy-Item linux\install.sh dist\install.sh

@@ -1,0 +1,218 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="obsidian/app.css">
+<script>
+window.MathJax = { startup: { typeset: false }, chtml: { fontURL: "obsidian/lib/mathjax/output/chtml/fonts/woff-v2" } };
+</script>
+<script src="obsidian/lib/mathjax/tex-chtml-full.js"></script>
+<style>
+html, body { margin: 0; background: var(--background-primary); overflow: hidden; }
+body { font-family: var(--font-text); font-size: var(--font-text-size); }
+#wrap { padding: 3px 8px; }
+#editor .cm-editor { background: transparent; outline: none; }
+#editor .cm-content { font-family: var(--font-text); caret-color: var(--caret-color); }
+#editor .cm-cursor { border-left-color: var(--caret-color); border-left-width: 2px; }
+#pv { padding: 5px 8px 4px; min-height: 20px; color: #E6E6E6; font-size: 17px; border-bottom: 1px solid #333; text-align: center; white-space: pre-wrap; }
+#pv:empty { display: none; }
+#pv, #wrap { cursor: move; } #editor .cm-line { cursor: text; }
+#pv { max-height: 200px; overflow-y: auto; }           /* 渲染区上限：超出就整体缩小 */
+#pv > .inner { display: inline-block; white-space: normal; text-align: center; }
+#pv .piece { display: inline-block; white-space: nowrap; }
+#wrap { max-height: 120px; overflow-y: auto; }        /* 编辑区上限：超出在框内滚动 */
+.cm-tooltip { display: none !important; }   /* Latex Suite 自带的预览气泡：上面已有渲染区，不要它 */
+#editor .cm-content { font-size: 14px; }
+/* Obsidian 深色主题的配色（发布包里没有 Obsidian 的 app.css，这里补上公式编辑要用到的那部分） */
+body { --accent-h: 254; --accent-s: 80%; --color-red: #fb464c; --color-green: #44cf6e; --text-selection: rgba(137, 108, 255, 0.33);
+  --background-modifier-border: #363636; --font-monospace: Consolas, "Cascadia Mono", monospace; --placeholder-bg: rgba(137,108,255,.18); --placeholder-outline: rgba(137,108,255,.55); --size-4-2: 8px; }
+#editor .cm-content { color: #dadada; }
+#editor .cm-math { color: #dadada; font-style: italic; }   /* Obsidian：公式正文 --code-normal、斜体 */
+#editor .cm-math-cmd { color: #fb464c; }                   /* 命令 --code-tag */
+#editor .cm-math-var { color: #53dfdd; }                   /* 字母 --code-property */
+#editor .cm-math-num { color: #a882ff; }                   /* 数字 --code-value */
+#editor .cm-formatting-math { color: #44cf6e !important; }  /* $ --code-string */
+#editor .cm-selectionBackground { background: rgba(137, 108, 255, 0.33) !important; }
+#editor .cm-math.cm-bracket { color: inherit; font-style: normal; }   /* 括号颜色由 Latex Suite 的样式决定 */
+/* 跟随系统主题：浅色用 Obsidian 浅色配色（Latex Suite 的括号颜色按 .theme-light / .theme-dark 自动切换） */
+html, body { background: #1e1e1e; }
+body.theme-light, html.light { background: #ffffff; }
+body.theme-light #pv { color: #222; border-bottom-color: #ddd; }
+body.theme-light #editor .cm-content { color: #222; }
+body.theme-light #editor .cm-math { color: #222; }
+body.theme-light #editor .cm-math-cmd { color: #e93147; }
+body.theme-light #editor .cm-math-var { color: #00a3a0; }
+body.theme-light #editor .cm-math-num { color: #8a5cf5; }
+body.theme-light #editor .cm-formatting-math { color: #08b94e !important; }
+body.theme-light { --background-modifier-border: #ddd; --placeholder-bg: rgba(138,92,245,.15); --placeholder-outline: rgba(138,92,245,.5); }
+/* 照 Latex Suite 预览气泡：紧包内容的小卡片，宽高由内容撑开 */
+html, body { margin: 0; overflow: hidden; }
+#card { display: inline-block; width: max-content; min-width: 60px; max-width: var(--maxw, 900px); box-sizing: border-box; padding: 4px 6px; }
+#card #wrap { padding: 0; max-height: 240px; overflow-y: auto; }
+#card #pv { padding: 2px 4px 4px; }
+#editor .cm-editor, #editor .cm-scroller, #editor .cm-content { contain: none !important; }   /* CodeMirror 的尺寸隔离会让内容宽度传不出来 */
+#editor .cm-editor { width: 100%; }   /* CodeMirror 不会按内容收缩：宽度由外层 #editor 显式给定（维护者建议的固定宽度做法） */
+#editor .cm-scroller { overflow-x: auto; }
+/* 不折行：宽度 = 最长一行（折行和「按内容收缩宽度」互相顶，会每个字折一行） */
+#editor .cm-content, #editor .cm-content.cm-lineWrapping { white-space: pre !important; word-break: normal !important; overflow-wrap: normal !important; flex-shrink: 0; }
+#editor.wrapping .cm-content { white-space: pre-wrap !important; word-break: break-all !important; overflow-wrap: anywhere !important; }
+#err { color: var(--color-red); font-size: 12px; white-space: pre-wrap; }
+</style>
+</head>
+<body class="theme-dark mod-windows">
+<div id="card">
+<div id="pv" title="按住拖动"></div>
+<div id="wrap" class="markdown-source-view mod-cm6 is-live-preview">
+  <div id="editor" class="cm-s-obsidian"></div>
+  <div id="err"></div>
+</div>
+</div>
+<script>
+// 内容的自然尺寸：渲染区宽度、源码最长一行的宽度（不折行时），高度
+window.__sizeMsg = function () {
+  const card = document.getElementById('card');
+  if (!card) return;
+  if (window.__maxW) card.style.setProperty('--maxw', window.__maxW + 'px');
+  // 量出最长一行需要的像素宽度，显式设给 #editor（社区通行做法）；只在变了时设，避免死循环
+  const cc = document.querySelector('.cm-content'), ed = document.getElementById('editor');
+  if (cc && ed) {
+    const probe = window.__probe || (window.__probe = document.body.appendChild(Object.assign(document.createElement('span'), { style: 'position:absolute;visibility:hidden;white-space:pre;left:-9999px;top:0' })));
+    probe.style.font = getComputedStyle(cc).font;
+    let lineW = 0;
+    for (const l of cc.querySelectorAll('.cm-line')) { probe.textContent = l.textContent || ' '; lineW = Math.max(lineW, probe.offsetWidth); }
+    const cap = (window.__maxW || 560) - 14;
+    const wrap = lineW + 14 > cap;                 // 超过上限宽度：自动换行，框往下长
+    if (ed.classList.contains('wrapping') !== wrap) ed.classList.toggle('wrapping', wrap);
+    const nw = (wrap ? cap : lineW + 14) + 'px';
+    if (ed.style.width !== nw) ed.style.width = nw;
+  }
+  const r = card.getBoundingClientRect();
+  const key = Math.ceil(r.width) + 'x' + Math.ceil(r.height);
+  if (key === window.__lastSize) return;            // 尺寸没变不上报
+  window.__lastSize = key;
+  window.pywebview && window.pywebview.api.msg({ type: 'size', h: Math.ceil(r.height), w: Math.ceil(r.width), tipAbove: 0, tipBelow: 0 });
+};
+</script>
+<script src="ime.bundle.js?v=39"></script>
+<script>
+// 上半部分：把框里的内容实时渲染出来（$…$ / $$…$$ 用 MathJax，其余原样）
+(function () {
+  let last = null;
+  function render() {
+    const c = document.querySelector('.cm-content');
+    if (!c || !window.MathJax || !window.MathJax.tex2chtml) return;
+    const src = Array.from(c.querySelectorAll('.cm-line')).map(l => l.textContent).join('\n');
+    if (src === last) return;
+    last = src;
+    const pv = document.getElementById('pv');
+    pv.innerHTML = '';
+    if (!src.replace(/\$/g, '').trim()) { requestAnimationFrame(window.__sizeMsg); return; }
+    const box = document.createElement('div'); box.className = 'inner'; pv.appendChild(box);
+    const maxW = (window.__maxW || 560) - 30;
+    box.style.maxWidth = maxW + 'px';
+    // 公式在顶层的 + - = , 处切段（花括号里面不切），没有运算符的长串每 24 个字符切一段；各段分开渲染，排不下自动换行
+    function pieces(tex) {
+      const out = []; let cur = '', depth = 0, run = 0;
+      for (let i = 0; i < tex.length; i++) {
+        const ch = tex[i];
+        if (ch === '\\') {                                   // 命令整体不拆
+          const mm = /^\\([A-Za-z]+|.)/.exec(tex.slice(i)); cur += mm[0]; i += mm[0].length - 1; run = 0; continue;
+        }
+        cur += ch;
+        if (ch === '{') depth++; else if (ch === '}') depth--;
+        run = /[A-Za-z0-9]/.test(ch) ? run + 1 : 0;
+        if (depth === 0 && (/[+\-=,]/.test(ch) || run >= 24)) { out.push(cur); cur = ''; run = 0; }
+      }
+      if (cur) out.push(cur);
+      return out;
+    }
+    function put(tex, display) {
+      for (const p of (display ? [tex] : pieces(tex))) {
+        const span = document.createElement('span'); span.className = 'piece';
+        try { span.appendChild(window.MathJax.tex2chtml(p, { display: false })); } catch (e) { span.textContent = p; }
+        box.appendChild(span);
+      }
+    }
+    const re = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
+    let pos = 0, m;
+    while ((m = re.exec(src))) {
+      if (m.index > pos) box.appendChild(document.createTextNode(src.slice(pos, m.index)));
+      put(m[1] !== undefined ? m[1] : m[2], m[1] !== undefined);
+      pos = m.index + m[0].length;
+    }
+    if (pos < src.length && src.slice(pos).trim()) box.appendChild(document.createTextNode(src.slice(pos)));
+    try { window.MathJax.startup.document.clear(); window.MathJax.startup.document.updateDocument(); } catch (e) {}
+    // 单独一段仍比框宽：只把这一段缩小
+    for (const sp of box.querySelectorAll('.piece')) {
+      const w = sp.scrollWidth;
+      if (w > maxW) { const s = Math.max(0.35, maxW / w); sp.style.zoom = s; }
+    }
+    requestAnimationFrame(window.__sizeMsg);
+  }
+  // 内容变了才渲染（不再每 80ms 轮询）：监视编辑区文字变化，同一帧内多次变化只渲染一次
+  let queued = false;
+  const kick = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; render(); }); } };
+  (function attach() {
+    const c = document.querySelector('.cm-content');
+    if (!c || !window.MathJax || !window.MathJax.tex2chtml) return setTimeout(attach, 50);
+    new MutationObserver(kick).observe(c, { childList: true, subtree: true, characterData: true });
+    window.MathJax.tex2chtml('x^2+\\frac{1}{2}');   // 预热 MathJax：第一次打字不卡
+    kick();
+  })();
+})();
+</script>
+<script>
+(function () {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  function apply() { document.body.classList.toggle('theme-dark', mq.matches); document.body.classList.toggle('theme-light', !mq.matches); }
+  apply(); mq.addEventListener('change', apply);
+})();
+</script>
+<script>
+// 整个框都能拖：在文字以外的地方按下左键就拖动窗口；在文字上按下照常选字、定位光标
+document.addEventListener('mousedown', function (e) {
+  if (e.button !== 0 || e.target.closest('.cm-line')) return;
+  e.preventDefault();
+  window.pywebview && window.pywebview.api.msg({ type: 'drag' });
+}, true);
+</script>
+<script>
+// 标准做法：ResizeObserver 监视卡片，推迟到下一帧再上报（避免改窗口大小又触发自身的循环）
+(function () {
+  const card = document.getElementById('card');
+  let pending = false;
+  new ResizeObserver(function () {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function () { pending = false; window.__sizeMsg && window.__sizeMsg(); });
+  }).observe(card);
+})();
+</script>
+<script>
+// Ctrl+Enter：上屏并转成 Unicode（Enter 是原样 LaTeX，Shift+Enter 换行）
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && e.ctrlKey && e.shiftKey && !e.altKey) {   // Ctrl+Shift+Enter：转成 MathML，Word 粘贴时自动变成原生公式（OMML）
+    e.preventDefault(); e.stopPropagation();
+    const t = Array.from(document.querySelectorAll('.cm-content .cm-line')).map(l => l.textContent).join('\n');
+    const parts = [];
+    t.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (m0, d, i) => { parts.push({ tex: d !== undefined ? d : i, display: d !== undefined }); return m0; });
+    if (!parts.length) parts.push({ tex: t, display: false });
+    const mml = parts.map(p => { try { return window.MathJax.tex2mml(p.tex, { display: p.display }); } catch (err) { return p.tex; } }).join('\n');
+    window.pywebview && window.pywebview.api.msg({ type: 'commit', text: mml, raw: true });
+    return;
+  }
+  if (e.key === 'Enter' && e.altKey && !e.ctrlKey && !e.shiftKey) {   // Alt+Enter：保留外层 $ 上屏
+    e.preventDefault(); e.stopPropagation();
+    const t = Array.from(document.querySelectorAll('.cm-content .cm-line')).map(l => l.textContent).join('\n');
+    window.pywebview && window.pywebview.api.msg({ type: 'commit', text: t, keep: true });
+    return;
+  }
+  if (e.key === 'Enter' && e.ctrlKey && !e.shiftKey && !e.altKey) {
+    e.preventDefault(); e.stopPropagation();
+    const text = Array.from(document.querySelectorAll('.cm-content .cm-line')).map(l => l.textContent).join('\n');
+    window.pywebview && window.pywebview.api.msg({ type: 'commit', text: text, uni: true });
+  }
+}, true);
+</script>
+</body>
+</html>

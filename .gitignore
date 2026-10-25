@@ -12,3 +12,9 @@ node_modules/
 /tests/e2e/results/
 /tests/golden/*.log
 /tests/e2e/installer-old/
+
+# Python 原型运行时生成的文件、个人设置
+prototype/log-*.txt
+prototype/shot_*.png
+prototype/__pycache__/
+prototype/www/plugin/data.json

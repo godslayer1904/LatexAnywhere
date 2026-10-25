@@ -25,7 +25,7 @@ add_executable(la_difftest tests/diff/difftest.cpp)
 target_link_libraries(la_difftest PRIVATE la_core)
 
 # ---------------- 引擎字节码（Windows、Linux 共用） ----------------
-set(LA_VERSION "0.9.0")
+set(LA_VERSION "1.0.0")
 if(WIN32 OR (UNIX AND NOT APPLE))
   # 默认用本次构建的 la_compile 生成；交叉编译时由 -DLA_COMPILER= 指定能在本机运行的 la_compile
   set(LA_BYTECODE_DIR "${CMAKE_BINARY_DIR}/bytecode")
