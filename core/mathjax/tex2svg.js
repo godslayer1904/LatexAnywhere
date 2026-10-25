@@ -105,7 +105,32 @@ function toUnicode(t) {
 		}
 		return out;
 	};
-	return unicodeitReplace(fracs(t)).replace(/[{}]/g, "");
+	// 数学函数名原样保留（unicodeit 会把 \ln 的 \l 当成波兰字母 ł、把 \sin 的 \s… 拆错）
+	// 函数名后放一个占位符（U+E000，私用区，unicodeit 不认识也不会动），转换完再换成空格
+	const OPS = /\\(arccos|arcsin|arctan|arg|cosh|cos|coth|cot|csc|deg|det|dim|exp|gcd|hom|inf|ker|lg|liminf|limsup|lim|ln|log|max|min|Pr|sec|sinh|sin|sup|tanh|tan)(?![A-Za-z])/g;
+	// 上下标组 _{…} ^{…}：每个字符都有对应的上下标字符才转成上下标；否则整组写成 _(…) / ^(…)，
+	// 避免 unicodeit 对没有上下标形式的字符（空格、→ 等）留下半截下划线（_{n \to \infty} → ₙ_ _→_ _∞）
+	const scripts = (s) => {
+		let res = "", i = 0;
+		while (i < s.length) {
+			const c = s[i];
+			if ((c === "_" || c === "^") && s[i + 1] === "{" && s[i - 1] !== "\\") {
+				let [inner, k] = group(s, i + 1);
+				const conv = unicodeitReplace(scripts(inner).replace(OPS, (m, name) => name + "")).replace(//g, "").replace(/[{}\s]/g, "");
+				const chars = [...conv];
+				const mapped = chars.map((ch) => { const r = unicodeitReplace(c + "{" + ch + "}"); return r[0] === c ? null : r; });
+				res += chars.length && mapped.every((m) => m) ? mapped.join("") : (c === "_" ? "" : "") + "(" + conv + ")";
+				i = k;
+				continue;
+			}
+			res += c;
+			i++;
+		}
+		return res;
+	};
+	const out = unicodeitReplace(scripts(fracs(t)).replace(OPS, (m, name) => name + "")).replace(//g, "_").replace(//g, "^");
+	// 函数名后紧跟字母数字才需要空格隔开（ln x、sin x），后面是上下标、括号就直接相连（sin²x、exp(x)）
+	return out.replace(/ *(?=[A-Za-z0-9Ͱ-Ͽ])/g, " ").replace(/ */g, "").replace(/[{}]/g, "");
 }
 
 // 宿主用：记录之间用 、字段之间用  分隔（m=公式 SVG，t=文字，e=出错的文字）

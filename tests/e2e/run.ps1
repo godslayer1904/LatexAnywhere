@@ -2,7 +2,7 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $res = Join-Path $here "results"
 $wsb = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wsb.exe"
-foreach ($id in (& $wsb list --raw | ConvertFrom-Json).WindowsSandboxEnvironments) { & $wsb stop --id $id | Out-Null }   # 清掉上一轮没关的
+foreach ($e in (& $wsb list --raw | ConvertFrom-Json).WindowsSandboxEnvironments) { & $wsb stop --id $e.Id | Out-Null }   # 清掉上一轮没关的
 Get-ChildItem $res -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
 New-Item -ItemType Directory $res -Force | Out-Null
 $cfg = Get-Content "$here\e2e.wsb" -Raw

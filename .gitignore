@@ -11,3 +11,4 @@ node_modules/
 /tests/diff/fails.json
 /tests/e2e/results/
 /tests/golden/*.log
+/tests/e2e/installer-old/

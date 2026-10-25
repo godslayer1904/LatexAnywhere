@@ -10,6 +10,8 @@
 #include <regex>
 
 #include "box.h"
+#include "help.h"
+#include "i18n.h"
 #include "js_engine.h"
 #include "resource.h"
 #include "sysio.h"
@@ -31,9 +33,7 @@ HWND g_msg;
 NOTIFYICONDATAW g_nid{};
 Engine* g_eng;
 Box* g_box;
-bool g_zh = true;
 
-const wchar_t* T(const wchar_t* zh, const wchar_t* en) { return g_zh ? zh : en; }
 
 // ---------- 资源 ----------
 // 指向 exe 映像里的资源（只读、按需换页，不占私有内存）
@@ -97,13 +97,8 @@ void AutostartSet(bool on) {
 	RegCloseKey(k);
 }
 
-// ---------- 使用说明：从资源释放到本地，经 explorer 打开（浏览器挂在 explorer 名下） ----------
-void OpenHelp() {
-	std::string html = LoadRes(g_zh ? IDR_HELP_ZH : IDR_HELP_EN);
-	std::wstring path = AppDataDir() + L"\\help.html";
-	WriteFileBytes(path, html.data(), html.size());
-	ShellExecuteW(nullptr, L"open", L"explorer.exe", (L"\"" + path + L"\"").c_str(), nullptr, SW_SHOWNORMAL);
-}
+// ---------- 使用说明：原生窗口，不借助浏览器 ----------
+void OpenHelp() { ShowHelp(g_inst, SystemDark()); }
 
 void Quit(const char* why) {
 	Log("退出：%s", why);
@@ -113,10 +108,10 @@ void Quit(const char* why) {
 
 void ShowTrayMenu() {
 	HMENU m = CreatePopupMenu();
-	AppendMenuW(m, MF_STRING, ID_HELP, T(L"使用说明", L"Help"));
-	AppendMenuW(m, MF_STRING | (AutostartOn() ? MF_CHECKED : 0), ID_AUTOSTART, T(L"开机自启", L"Start with Windows"));
+	AppendMenuW(m, MF_STRING, ID_HELP, Lang().trayHelp);
+	AppendMenuW(m, MF_STRING | (AutostartOn() ? MF_CHECKED : 0), ID_AUTOSTART, Lang().trayAutostart);
 	AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
-	AppendMenuW(m, MF_STRING, ID_QUIT, T(L"退出", L"Quit"));
+	AppendMenuW(m, MF_STRING, ID_QUIT, Lang().trayQuit);
 	POINT pt;
 	GetCursorPos(&pt);
 	SetForegroundWindow(g_msg);
@@ -191,7 +186,6 @@ int RunWorker() {
 	if (GetLastError() == ERROR_ALREADY_EXISTS) return kExitQuit;
 	(void)mtx;
 	CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-	g_zh = PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_CHINESE;
 
 	double t0 = NowMs();
 	std::wstring from = L"默认设置";
@@ -232,20 +226,22 @@ int RunWorker() {
 	g_nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
 	g_nid.uCallbackMessage = WM_TRAY;
 	g_nid.hIcon = (HICON)LoadImageW(g_inst, MAKEINTRESOURCEW(IDI_APP), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
-	wcscpy_s(g_nid.szTip, T(L"LatexAnywhere：Alt+L 打公式", L"LatexAnywhere: Alt+L to type math"));
+	wcscpy_s(g_nid.szTip, Lang().trayTip);
 	Shell_NotifyIconW(NIM_ADD, &g_nid);
 
 	if (!RegisterHotKey(g_msg, HK_OPEN, MOD_ALT | MOD_NOREPEAT, 'L')) {
 		Log("Alt+L 注册失败（被其他程序占用）");
 		g_nid.uFlags |= NIF_INFO;
 		wcscpy_s(g_nid.szInfoTitle, L"LatexAnywhere");
-		wcscpy_s(g_nid.szInfo, T(L"Alt+L 已被其他程序占用，公式框暂时无法唤起。", L"Alt+L is used by another program."));
+		wcscpy_s(g_nid.szInfo, Lang().hotkeyBusy);
 		Shell_NotifyIconW(NIM_MODIFY, &g_nid);
 	} else {
 		Log("Alt+L 已注册");
 	}
 	RegisterHotKey(g_msg, HK_KILL, MOD_WIN | MOD_ALT | MOD_NOREPEAT, 'L');   // 紧急强杀（不用 Ctrl+Alt+Shift 系，和 Moonlight 冲突）
 	std::thread(Watchdog).detach();
+	// 首次启动：弹出欢迎（使用说明）窗口，直到用户勾选「不再显示」；崩溃后由守护进程重启时不弹
+	if (!WelcomeHidden() && !wcsstr(GetCommandLineW(), L"--restarted")) ShowHelp(g_inst, SystemDark(), true);
 
 	MSG msg;
 	while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
@@ -261,12 +257,13 @@ int RunGuardian() {
 	if (GetLastError() == ERROR_ALREADY_EXISTS) return 0;
 	(void)mtx;
 	std::wstring cmd = L"\"" + ExePath() + L"\" --worker";
+	bool restarted = false;
 	double window = NowMs();
 	int restarts = 0;
 	for (;;) {
 		STARTUPINFOW si{sizeof si};
 		PROCESS_INFORMATION pi{};
-		std::wstring c = cmd;
+		std::wstring c = restarted ? cmd + L" --restarted" : cmd;   // 重启的不再弹欢迎窗口
 		if (!CreateProcessW(nullptr, c.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) { Log("启动工作进程失败 %lu", GetLastError()); return 1; }
 		CloseHandle(pi.hThread);
 		WaitForSingleObject(pi.hProcess, INFINITE);
@@ -277,6 +274,7 @@ int RunGuardian() {
 		if (NowMs() - window > 60000) { window = NowMs(); restarts = 0; }
 		if (++restarts > 5) { Log("工作进程一分钟内异常退出超过 5 次，停止重启"); return 1; }
 		Log("工作进程异常退出（%lu），1 秒后重启", code);
+		restarted = true;
 		Sleep(1000);
 	}
 }
@@ -289,6 +287,16 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR cmdline, int) {
 	LogInit();
 	std::wstring args = cmdline ? cmdline : L"";
 	if (args.find(L"--worker") != std::wstring::npos) return RunWorker();
+	if (args.find(L"--help") != std::wstring::npos) {   // 只打开使用说明窗口
+		ShowHelp(g_inst, SystemDark(), args.find(L"--welcome") != std::wstring::npos);   // --welcome：带底栏的欢迎模式（测试用）
+		MSG msg;
+		while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+			if (!FindWindowW(L"LatexAnywhereHelp", nullptr)) break;
+		}
+		return 0;
+	}
 	if (args.find(L"--quit") != std::wstring::npos) {   // 卸载程序用：结束正在运行的实例
 		if (HWND w = FindWindowW(L"LatexAnywhereMsg", nullptr)) {
 			DWORD pid = 0;

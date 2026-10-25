@@ -101,6 +101,46 @@ TestCase(name, keys, commit, expected, shotName := "") {
 }
 
 rep .= "开始 " A_Now "`n"
+
+; ---------------- 首次启动欢迎窗口：不勾选关掉→下次还弹；勾选关掉→下次不弹 ----------------
+AppExe() {
+	for p in ComObjGet("winmgmts:").ExecQuery("select ExecutablePath, CommandLine from Win32_Process where Name='LatexAnywhere.exe'")
+		if InStr(p.CommandLine, "--worker")
+			return p.ExecutablePath
+	return ""
+}
+RestartApp() {
+	exe := AppExe()
+	RunWait '"' exe '" --quit', , "Hide"
+	Sleep 1500
+	Run '"' exe '"'
+	t := A_TickCount
+	while (A_TickCount - t < 8000 && AppExe() == "")
+		Sleep 100
+	Sleep 1500
+}
+w1 := WinWait("ahk_class LatexAnywhereHelp", , 10)
+R(!!w1, "首次启动弹出欢迎窗口")
+if w1 {
+	Sleep 500
+	Send "{Enter}"   ; 不勾选直接关
+	WinWaitClose "ahk_class LatexAnywhereHelp", , 5
+}
+RestartApp()
+w2 := WinWait("ahk_class LatexAnywhereHelp", , 6)
+R(!!w2, "没勾选「不再显示」：再次启动仍弹出")
+if w2 {
+	ControlClick "Button1", "ahk_class LatexAnywhereHelp"   ; 勾选「不再显示」
+	Sleep 300
+	ControlClick "Button2", "ahk_class LatexAnywhereHelp"   ; 「开始使用」
+	WinWaitClose "ahk_class LatexAnywhereHelp", , 5
+}
+RestartApp()
+w3 := WinWait("ahk_class LatexAnywhereHelp", , 5)
+R(!w3, "勾选后再次启动不再弹出")
+if w3
+	WinClose "ahk_class LatexAnywhereHelp"
+
 TestCase("x^2 Tab 后上屏（LaTeX）", "x^2{Tab}", "{Enter}", "x^{2}", "x2")
 TestCase("分式 Tab 跳位", "//a{Tab}b{Tab}", "{Enter}", "\frac{a}{b}", "frac")
 TestCase("希腊字母", "@a+@b", "{Enter}", "\alpha+\beta")
