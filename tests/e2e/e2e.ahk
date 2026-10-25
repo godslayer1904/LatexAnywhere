@@ -132,10 +132,25 @@ RestartApp()
 w2 := WinWait("ahk_class LatexAnywhereHelp", , 6)
 R(!!w2, "没勾选「不再显示」：再次启动仍弹出")
 if w2 {
-	ControlClick "Button1", "ahk_class LatexAnywhereHelp"   ; 勾选「不再显示」
+	Sleep 300   ; 等窗口画完再点
+	; 勾选「不再显示」：真实鼠标点击（沙盒里不碰用户的鼠标）
+	WinActivate "ahk_class LatexAnywhereHelp"
+	ControlGetPos &cx, &cy, &cw, &ch, "Button1", "ahk_class LatexAnywhereHelp"
+	CoordMode "Mouse", "Client"
+	Click cx + 10, cy + ch // 2
 	Sleep 300
-	ControlClick "Button2", "ahk_class LatexAnywhereHelp"   ; 「开始使用」
-	WinWaitClose "ahk_class LatexAnywhereHelp", , 5
+	R(ControlGetChecked("Button1", "ahk_class LatexAnywhereHelp"), "点复选框勾上「不再显示」")
+	R(RegRead("HKCU\Software\LatexAnywhere", "HideWelcome", 0) == 1, "一勾选就已保存（不等关窗）")
+	Sleep 300
+	; 「开始使用」：用真实鼠标点按钮中心（沙盒里不碰用户的鼠标），和真人操作一致
+	WinActivate "ahk_class LatexAnywhereHelp"
+	ControlGetPos &bx, &by, &bw, &bh, "Button2", "ahk_class LatexAnywhereHelp"
+	CoordMode "Mouse", "Client"
+	Click bx + bw // 2, by + bh // 2
+	closed := WinWaitClose("ahk_class LatexAnywhereHelp", , 5)
+	R(closed, "点「开始使用」关闭欢迎窗口")
+	if !closed
+		WinClose "ahk_class LatexAnywhereHelp"
 }
 RestartApp()
 w3 := WinWait("ahk_class LatexAnywhereHelp", , 5)

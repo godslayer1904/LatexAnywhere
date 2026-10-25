@@ -156,6 +156,8 @@ void ShowHelp(GtkApplication* app, bool dark, bool welcome) {
 		GtkWidget* foot = Dir(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12));
 		gtk_widget_add_css_class(foot, "la-footer");
 		g_check = Dir(gtk_check_button_new_with_label(u(L.dontShow).c_str()));
+		// 一勾就保存：窗口没关程序就退出（关机、被结束）也不丢
+		g_signal_connect(g_check, "toggled", G_CALLBACK(+[](GtkCheckButton*, gpointer) { SaveChoice(); }), nullptr);
 		gtk_widget_set_hexpand(g_check, TRUE);
 		gtk_box_append(GTK_BOX(foot), g_check);
 		GtkWidget* btn = Dir(gtk_button_new_with_label(u(L.startUsing).c_str()));

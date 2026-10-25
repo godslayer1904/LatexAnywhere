@@ -242,6 +242,7 @@ if w2:
     c = find_role(help_window(), Atspi.Role.CHECK_BOX)
     if c: print("复选框状态：", [s.value_nick for s in c.get_state_set().get_states()], flush=True)
     type_keys(" ")       # 初始焦点在复选框上：空格勾选
+    R(bool(wait(lambda: os.path.exists(os.path.join(CFG, "hide-welcome")), 2)), "一勾选就已保存（不等关窗）")
     time.sleep(0.3)
     type_keys("{Enter}")   # 开始使用（关窗口时按当前勾选状态保存）
     wait(lambda: HELP not in app_windows(), 4)

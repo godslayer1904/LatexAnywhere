@@ -24,7 +24,10 @@ $t0 = Get-Date
 while (((Get-Date) - $t0).TotalSeconds -lt 30) { if ((Test-Path $log) -and (Select-String -Path $log -Pattern "Alt\+L" -Quiet)) { break }; Start-Sleep -Milliseconds 200 }
 L ("程序就绪用时 {0:N1} 秒" -f ((Get-Date) - $t0).TotalSeconds)
 $p = Start-Process "C:\AHK\AutoHotkey64.exe" -ArgumentList '/ErrorStdOut', '"C:\E2E\e2e.ahk"' -WorkingDirectory C:\E2E -PassThru -RedirectStandardError "$R\e2e.stderr.txt"
-if (-not $p.WaitForExit(900000)) { Stop-Process -Id $p.Id -Force; L "测试超时" }
+# 每次只等 1 秒、数满 900 次才算超时：沙盒刚启动时系统时钟会和主机对时而跳变，一次等 15 分钟会被提前唤醒误判超时（实测）
+$n = 0
+while (-not $p.WaitForExit(1000) -and ++$n -lt 900) { }
+if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; L "测试超时" }
 Copy-Item $log "$R\app.log" -Force -ErrorAction SilentlyContinue
 Get-ChildItem "$env:LOCALAPPDATA\LatexAnywhere\crash" -ErrorAction SilentlyContinue | Copy-Item -Destination $R -Force
 if ($setup) {

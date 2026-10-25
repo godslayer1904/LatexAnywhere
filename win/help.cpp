@@ -351,7 +351,11 @@ public:
 		}
 		case WM_COMMAND:
 			if (LOWORD(w) == ID_START) { DestroyWindow(hwnd); return 0; }
-			if (LOWORD(w) == ID_CHECK) { SetFocus(hwnd); return 0; }   // 键盘焦点留在窗口上，Enter / Esc 始终能关
+			if (LOWORD(w) == ID_CHECK) {
+				SaveChoice();   // 一勾就保存：窗口没关程序就退出（关机、被结束）也不丢
+				SetFocus(hwnd);   // 键盘焦点留在窗口上，Enter / Esc 始终能关
+				return 0;
+			}
 			break;
 		case WM_CTLCOLORSTATIC:
 		case WM_CTLCOLORBTN:
