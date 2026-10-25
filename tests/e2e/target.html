@@ -8,6 +8,10 @@ const t = document.getElementById("t");
 const sync = () => { document.title = "VAL:" + t.value.replace(/\n/g, "\n"); };
 t.addEventListener("input", sync);
 window.setVal = (v) => { t.value = v; sync(); };
-document.addEventListener("keydown", (e) => { if (e.key === "F9") { t.value = ""; sync(); } });   // F9：清空
+// F9：清空；F8：填入 a+b 并全选（测试选区带入时不往目标里打字，免受目标输入法状态影响）
+document.addEventListener("keydown", (e) => {
+	if (e.key === "F9") { e.preventDefault(); t.value = ""; sync(); }
+	if (e.key === "F8") { e.preventDefault(); t.value = "a+b"; t.select(); sync(); }
+});
 setInterval(sync, 200);
 </script></body></html>

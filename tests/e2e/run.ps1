@@ -13,7 +13,7 @@ Add-Type -Name W -Namespace U -MemberDefinition '[DllImport("user32.dll")] publi
 Start-Process $wsb -ArgumentList "connect", "--id", $id -WindowStyle Minimized
 $t0 = Get-Date
 $minimized = $false
-while (-not (Test-Path "$res\DONE") -and ((Get-Date) - $t0).TotalMinutes -lt 8) {
+while (-not (Test-Path "$res\DONE") -and ((Get-Date) - $t0).TotalMinutes -lt 20) {
     if (-not $minimized) {
         $c = Get-Process WindowsSandboxRemoteSession, WindowsSandboxClient -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 }
         foreach ($p in $c) { [U.W]::ShowWindow($p.MainWindowHandle, 6) | Out-Null; $minimized = $true }   # 6 = 最小化

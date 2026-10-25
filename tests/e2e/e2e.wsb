@@ -7,6 +7,7 @@
     <MappedFolder><HostFolder>C:\Users\asus\Documents\claude_home\apps\LatexAnywhere-cpp\tests\e2e</HostFolder><SandboxFolder>C:\E2E</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
     <MappedFolder><HostFolder>C:\Users\asus\AutoHotkey</HostFolder><SandboxFolder>C:\AHK</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
     <MappedFolder><HostFolder>C:\Users\asus\Documents\claude_home\apps\LatexAnywhere\proto\www\plugin</HostFolder><SandboxFolder>C:\LSPlugin</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
+    <MappedFolder><HostFolder>C:\Users\asus\Documents\claude_home\apps\LatexAnywhere-cpp\tests\e2e\installer</HostFolder><SandboxFolder>C:\Installer</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
     <MappedFolder><HostFolder>C:\Users\asus\Documents\claude_home\apps\LatexAnywhere-cpp\tests\e2e\results</HostFolder><SandboxFolder>C:\Results</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder>
   </MappedFolders>
   <LogonCommand><Command>powershell -NoProfile -ExecutionPolicy Bypass -File C:\E2E\boot.ps1</Command></LogonCommand>

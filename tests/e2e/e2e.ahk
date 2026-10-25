@@ -173,12 +173,8 @@ if !WinWait("ahk_exe msedge.exe", , 20) {
 	EdgeCase("Edge：分式 + Unicode", "//1{Tab}2{Tab}", "^{Enter}", "1/2")
 	; 选中再唤起（UI Automation 读选区）
 	WinActivate "ahk_exe msedge.exe"
-	Send "{F9}"
-	Sleep 200
-	SendText "a+b"
-	Sleep 300
-	Send "^a"
-	Sleep 200
+	Send "{F8}"
+	Sleep 400
 	Send "!l"
 	WaitBox(true)
 	Sleep 200
@@ -234,6 +230,58 @@ mem := ""
 for p in ComObjGet("winmgmts:").ExecQuery("select ProcessId, CommandLine, PrivatePageCount, WorkingSetSize from Win32_Process where Name='LatexAnywhere.exe'")
 	mem .= (InStr(p.CommandLine, "--worker") ? "工作进程" : "守护进程") " 私有 " Round(p.PrivatePageCount / 1048576, 1) " MB / 工作集 " Round(p.WorkingSetSize / 1048576, 1) " MB；"
 R(true, "内存", mem)
+
+; ---------------- 崩溃自动恢复：强行结束工作进程，守护进程应在 1 秒左右拉起新的 ----------------
+WorkerPid() {
+	for p in ComObjGet("winmgmts:").ExecQuery("select ProcessId, CommandLine from Win32_Process where Name='LatexAnywhere.exe'")
+		if InStr(p.CommandLine, "--worker")
+			return p.ProcessId
+	return 0
+}
+old := WorkerPid()
+RunWait 'taskkill /PID ' old ' /F', , "Hide"
+t0 := A_TickCount, nw := 0
+while (A_TickCount - t0 < 5000) {
+	nw := WorkerPid()
+	if (nw && nw != old)
+		break
+	Sleep 50
+}
+R(nw && nw != old, "工作进程被强杀后自动重启", "用时 " (A_TickCount - t0) " ms（旧 " old " → 新 " nw "）")
+Sleep 1500
+TestCase("重启后照常可用", "x^2{Tab}", "{Enter}", "x^{2}")
+
+; ---------------- 浸泡（缩短版）：连续弹框—打字—上屏 300 次，看内存是否增长 ----------------
+MemOf(pid) {
+	for p in ComObjGet("winmgmts:").ExecQuery("select PrivatePageCount from Win32_Process where ProcessId=" pid)
+		return Round(p.PrivatePageCount / 1048576, 1)
+	return -1
+}
+wp := WorkerPid()
+m0 := MemOf(wp), samples := "", soakFail := 0
+loop 300 {
+	GEd.Value := ""
+	WinActivate "ahk_id " G.Hwnd
+	GEd.Focus()
+	Send "!l"
+	if (WaitBox(true, 2000) < 0) {
+		soakFail++
+		continue
+	}
+	SendText "a_" Mod(A_Index, 10)
+	Send "{Tab}"
+	SendText "+@b"
+	Send "{Enter}"
+	WaitBox(false, 2000)
+	Sleep 450
+	if (StrReplace(GEd.Value, "`r", "") != "a_{" Mod(A_Index, 10) "}+\beta")
+		soakFail++
+	if (Mod(A_Index, 50) == 0)
+		samples .= A_Index ":" MemOf(wp) "MB "
+}
+m1 := MemOf(wp)
+R(soakFail == 0, "浸泡 300 次全部正确", "失败 " soakFail " 次")
+R(m1 - m0 < 10, "浸泡 300 次内存不持续增长", "开始 " m0 " MB → 结束 " m1 " MB；采样 " samples)
 
 ; 紧急强杀
 Send "#!l"
