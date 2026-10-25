@@ -74,7 +74,7 @@ Name: "{userprograms}\LatexAnywhere"; Filename: "{app}\LatexAnywhere.exe"
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "LatexAnywhere"; ValueData: """{app}\LatexAnywhere.exe"""; Tasks: autostart; Flags: uninsdeletevalue
 ; 程序自己的设置（欢迎窗口「不再显示」、界面语言）：卸载时一并删除
-Root: HKCU; Subkey: "Software\LatexAnywhere"; Flags: uninsdeletekeyifempty uninsdeletekey
+Root: HKCU; Subkey: "Software\LatexAnywhere"; Flags: uninsdeletekey
 
 [Run]
 Filename: "{app}\LatexAnywhere.exe"; Flags: nowait postinstall skipifsilent; Description: "{cm:Launch}"
