@@ -45,6 +45,7 @@ const Strings kZhCN = {
 	L"下次启动时不再显示", L"开始使用",
 	L"语言", L"跟随系统", L"简体中文",
 	L"登录时自动启动", L"程序在屏幕顶栏右侧运行（紫色 ∑ 图标），点它可以开关「%1」，或者「%2」。",
+	L"随时按 ‹Alt›+‹Shift›+‹L› 再打开这份说明。",
 };
 
 const Strings kZhTW = {
@@ -78,6 +79,7 @@ const Strings kZhTW = {
 	L"下次啟動時不再顯示", L"開始使用",
 	L"語言", L"跟隨系統", L"繁體中文",
 	L"登入時自動啟動", L"程式在螢幕頂欄右側執行（紫色 ∑ 圖示），點它可以開關「%1」或「%2」。",
+	L"隨時按 ‹Alt›+‹Shift›+‹L› 再次開啟這份說明。",
 };
 
 const Strings kJa = {
@@ -111,6 +113,7 @@ const Strings kJa = {
 	L"次回から表示しない", L"使い始める",
 	L"言語", L"システムに合わせる", L"日本語",
 	L"ログイン時に自動起動", L"画面上部のトップバー右側で動いています（紫の ∑ アイコン）。クリックすると「%1」の切り替えや「%2」ができます。",
+	L"‹Alt›+‹Shift›+‹L› でいつでもこの説明を開けます。",
 };
 
 const Strings kEn = {
@@ -144,6 +147,7 @@ const Strings kEn = {
 	L"Don't show this at startup", L"Start",
 	L"Language", L"Follow system", L"English",
 	L"Start at login", L"It runs in the top bar (purple ∑ icon). Click it to toggle %1 or to %2.",
+	L"Press ‹Alt›+‹Shift›+‹L› any time to open this help again.",
 };
 
 const Strings kKo = {
@@ -177,6 +181,7 @@ const Strings kKo = {
 	L"다음부터 시작할 때 표시하지 않음", L"시작하기",
 	L"언어", L"시스템 설정 따르기", L"한국어",
 	L"로그인 시 자동 시작", L"화면 상단 막대 오른쪽에서 실행됩니다(보라색 ∑ 아이콘). 클릭하면 「%1」을 켜고 끄거나 「%2」할 수 있습니다.",
+	L"언제든지 ‹Alt›+‹Shift›+‹L›을 누르면 이 설명을 다시 열 수 있습니다.",
 };
 
 const Strings kVi = {
@@ -210,6 +215,7 @@ const Strings kVi = {
 	L"Không hiển thị lại khi khởi động", L"Bắt đầu",
 	L"Ngôn ngữ", L"Theo hệ thống", L"Tiếng Việt",
 	L"Khởi động khi đăng nhập", L"Chương trình chạy trên thanh trên cùng (biểu tượng ∑ màu tím). Nhấp vào để bật/tắt “%1” hoặc “%2”.",
+	L"Nhấn ‹Alt›+‹Shift›+‹L› bất cứ lúc nào để mở lại hướng dẫn này.",
 };
 
 const Strings kRu = {
@@ -243,6 +249,7 @@ const Strings kRu = {
 	L"Больше не показывать при запуске", L"Начать",
 	L"Язык", L"Как в системе", L"Русский",
 	L"Запускать при входе", L"Программа работает в верхней панели (фиолетовый значок ∑). Нажмите на него, чтобы включить или выключить «%1» или выбрать «%2».",
+	L"Нажмите ‹Alt›+‹Shift›+‹L› в любой момент, чтобы снова открыть эту справку.",
 };
 
 const Strings kAr = {
@@ -276,6 +283,7 @@ const Strings kAr = {
 	L"عدم الإظهار عند بدء التشغيل مرة أخرى", L"ابدأ",
 	L"اللغة", L"حسب لغة النظام", L"العربية",
 	L"التشغيل عند تسجيل الدخول", L"يعمل البرنامج في الشريط العلوي (أيقونة ∑ البنفسجية). انقر عليها لتشغيل «%1» أو إيقافه، أو لاختيار «%2».",
+	L"اضغط ‹Alt›+‹Shift›+‹L› في أي وقت لفتح هذه التعليمات مرة أخرى.",
 };
 
 const Strings kEs = {
@@ -309,6 +317,7 @@ const Strings kEs = {
 	L"No volver a mostrar al iniciar", L"Empezar",
 	L"Idioma", L"Según el sistema", L"Español",
 	L"Iniciar al iniciar sesión", L"Se ejecuta en la barra superior (icono ∑ morado). Haz clic en él para activar o desactivar «%1» o para «%2».",
+	L"Pulsa ‹Alt›+‹Shift›+‹L› en cualquier momento para volver a abrir esta ayuda.",
 };
 
 const Strings kPt = {
@@ -342,6 +351,7 @@ const Strings kPt = {
 	L"Não mostrar novamente ao iniciar", L"Começar",
 	L"Idioma", L"Seguir o sistema", L"Português (Brasil)",
 	L"Iniciar ao entrar", L"Ele roda na barra superior (ícone ∑ roxo). Clique nele para ligar ou desligar “%1” ou para “%2”.",
+	L"Pressione ‹Alt›+‹Shift›+‹L› a qualquer momento para abrir esta ajuda de novo.",
 };
 
 #ifdef _WIN32

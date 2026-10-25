@@ -33,7 +33,7 @@ void ImeQuery(std::function<void(bool active)> done);   // 中文等本地输入
 void ImeSetActive(bool on);
 void ImeRecover();   // 启动时：上次中途崩溃没切回的，切回去
 
-// GNOME 自定义快捷键：Alt+L 唤起、Super+Alt+L 紧急退出。返回 false 表示 Alt+L 已被别的快捷键占用
+// GNOME 自定义快捷键：Alt+L 唤起、Alt+Shift+L 使用说明、Super+Alt+L 紧急退出。返回 false 表示 Alt+L 已被别的快捷键占用
 bool EnsureShortcuts(const std::string& exe);
 void RemoveShortcuts();
 

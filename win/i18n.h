@@ -44,6 +44,7 @@ struct Strings {
 	// Linux 版替换的文字（%1 = 自启菜单名，%2 = 退出菜单名）
 	const wchar_t* autostartLinux;
 	const wchar_t* trayLinux;
+	const wchar_t* helpKeyLinux;   // 说明窗口开头：随时按 Alt+Shift+L 再打开（Linux 没有常驻托盘可点）
 };
 
 const Strings& Lang();   // 当前语言

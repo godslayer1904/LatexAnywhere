@@ -112,6 +112,7 @@ void ShowHelp(GtkApplication* app, bool dark, bool welcome) {
 	auto esc = [](const std::string& s) { gchar* e = g_markup_escape_text(s.c_str(), -1); std::string r = e; g_free(e); return r; };
 	add(Label(esc(u(L.title)), "la-title"));
 	add(Label(esc(u(L.subtitle)), "la-sub"));
+	add(Label(Markup(u(L.helpKeyLinux), dark), "la-tip"));   // 放在最前面：每次看说明都知道怎么再调出来
 	add(Label(esc(u(L.hBasic)), "la-h"));
 	for (int i = 0; i < 4; i++) add(Label(std::to_string(i + 1) + ".  " + Markup(u(L.basic[i]), dark)));
 	add(Label(Markup(u(L.tipSelection), dark), "la-tip"));

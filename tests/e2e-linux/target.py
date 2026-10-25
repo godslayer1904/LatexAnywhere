@@ -62,6 +62,10 @@ def activate(app):
                 token = ctx.get_startup_notify_id(None, []) or ""
                 env = dict(os.environ, XDG_ACTIVATION_TOKEN=token)
                 subprocess.Popen([EXE, "--toggle"], env=env)
+            elif op == "help":   # 像 GNOME 快捷键 Alt+Shift+L 那样带令牌调用
+                ctx = win.get_display().get_app_launch_context()
+                env = dict(os.environ, XDG_ACTIVATION_TOKEN=ctx.get_startup_notify_id(None, []) or "")
+                subprocess.Popen([EXE, "--help"], env=env)
             elif op == "setclip":
                 win.get_clipboard().set(arg)
             elif op == "getclip":

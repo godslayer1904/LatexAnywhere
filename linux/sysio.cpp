@@ -368,6 +368,7 @@ bool EnsureShortcuts(const std::string& exe) {
 	bool busy = TakenByOther(mk, "<Alt>l", "latexanywhere-");
 	std::string q = "'" + exe + "'";
 	if (!busy) SetBinding(mk, "latexanywhere-toggle", "LatexAnywhere", (q + " --toggle").c_str(), "<Alt>l");
+	if (!TakenByOther(mk, "<Shift><Alt>l", "latexanywhere-")) SetBinding(mk, "latexanywhere-help", "LatexAnywhere (help)", (q + " --help").c_str(), "<Shift><Alt>l");
 	if (!TakenByOther(mk, "<Super><Alt>l", "latexanywhere-")) SetBinding(mk, "latexanywhere-quit", "LatexAnywhere (emergency quit)", (q + " --quit").c_str(), "<Super><Alt>l");
 	g_settings_sync();
 	g_object_unref(mk);

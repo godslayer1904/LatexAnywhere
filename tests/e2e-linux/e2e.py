@@ -455,6 +455,36 @@ m1 = anon_mb(w[0]) if w else 0
 R(fails == 0, f"浸泡 {N} 次全部正确", f"失败 {fails} 次")
 R(m1 - m0 < 10, f"浸泡 {N} 次内存不持续增长", f"开始 {m0:.1f} MB → 结束 {m1:.1f} MB；采样 {' '.join(samples)}")
 
+# ---- Alt+Shift+L 打开使用说明 ----
+cmd("help")
+R(bool(wait(lambda: HELP in app_windows(), 5)), "Alt+Shift+L 打开使用说明", str(app_windows()))
+time.sleep(0.5)
+type_keys("{Esc}")
+wait(lambda: HELP not in app_windows(), 3)
+cmd("present")
+time.sleep(0.3)
+
+# ---- 快捷键注册（用文件版 GSettings，看程序写进去的绑定） ----
+quit_app()
+kf = os.path.join(D, "gsettings-keyfile")
+env = dict(os.environ, GSETTINGS_BACKEND="keyfile")
+env.pop("LA_NO_SHORTCUTS", None)
+os.makedirs(os.path.join(os.environ["XDG_CONFIG_HOME"], "glib-2.0", "settings"), exist_ok=True)
+subprocess.Popen([EXE, "--foreground"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+wait(lambda: pids(True) and any("Alt+L 已注册" in l for l in log_lines()[-30:]), 15)
+time.sleep(1)
+kft = ""
+try:
+    kft = open(os.path.join(os.environ["XDG_CONFIG_HOME"], "glib-2.0", "settings", "keyfile"), encoding="utf-8").read()
+except FileNotFoundError:
+    pass
+binds = {k: ("<Alt>l" if k == "toggle" else "<Shift><Alt>l" if k == "help" else "<Super><Alt>l") for k in ("toggle", "help", "quit")}
+ok = all(f"latexanywhere-{k}" in kft for k in binds) and all(b in kft for b in binds.values()) and "--help" in kft
+R(ok, "注册了 Alt+L / Alt+Shift+L / Super+Alt+L 三个快捷键", " ".join(re.findall(r"binding='([^']*)'", kft)))
+subprocess.run([EXE, "--quit"], env=env, timeout=10)
+wait(lambda: not pids(), 6)
+start_app()
+
 # ---- 托盘「退出」、紧急退出 ----
 it = menu_items()
 if it: click(it[-1][0])
