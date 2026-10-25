@@ -222,8 +222,19 @@ Sleep 700
 R(StrReplace(GEd.Value, "`r", "") == "a+b+c", "选中带入并替换", "得到 [" GEd.Value "]")
 
 ; ---------------- 浏览器目标（Edge，Chromium：MSAA 光标、UI Automation 取选区、粘贴） ----------------
+;只认测试页面自己的窗口（标题带 VAL:）：真机上用户自己的 Edge 也开着，绝不能碰（10-25 家里真机踩过）
+SetTitleMatchMode 2
+global EW := "VAL: ahk_exe msedge.exe"
+EdgeTitles() {
+	s := ""
+	for h in WinGetList("ahk_exe msedge.exe")
+		s .= "[" WinGetTitle(h) "] "
+	return s
+}
 EdgeVal() {
-	t := WinGetTitle("ahk_exe msedge.exe")
+	if !WinExist(EW)
+		return "<没有测试窗口；Edge 窗口：" EdgeTitles() ">"
+	t := WinGetTitle(EW)
 	p := InStr(t, "VAL:")
 	if !p
 		return "<无标题>"
@@ -232,14 +243,14 @@ EdgeVal() {
 	return StrReplace(v, "\n", "`n")
 }
 Run '"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --no-first-run --no-default-browser-check --user-data-dir=' A_Temp '\LAEdgeProfile --app=file:///' StrReplace(A_ScriptDir, '\', '/') '/target.html'
-if !WinWait("ahk_exe msedge.exe", , 20) {
-	R(false, "Edge 启动", "20 秒内没出现窗口")
+if !WinWait(EW, , 20) {
+	R(false, "Edge 启动", "20 秒内没出现测试窗口；Edge 窗口：" EdgeTitles())
 } else {
 	Sleep 4000
-	WinActivate "ahk_exe msedge.exe"
+	WinActivate EW
 	Sleep 800
 	EdgeCase(name, keys, commit, expected) {
-		WinActivate "ahk_exe msedge.exe"
+		WinActivate EW
 		Sleep 200
 		Send "{F9}"
 		Sleep 300
@@ -261,7 +272,7 @@ if !WinWait("ahk_exe msedge.exe", , 20) {
 	EdgeCase("Edge：x^2 上屏", "x^2{Tab}", "{Enter}", "x^{2}")
 	EdgeCase("Edge：分式 + Unicode", "//1{Tab}2{Tab}", "^{Enter}", "1/2")
 	; 选中再唤起（UI Automation 读选区）
-	WinActivate "ahk_exe msedge.exe"
+	WinActivate EW
 	Send "{F8}"
 	Sleep 400
 	Send "!l"
@@ -273,8 +284,12 @@ if !WinWait("ahk_exe msedge.exe", , 20) {
 	WaitBox(false)
 	Sleep 900
 	R(EdgeVal() == "a+b+c", "Edge：选中带入并替换", "得到 [" EdgeVal() "]")
-	WinClose "ahk_exe msedge.exe"
+	WinClose EW
 }
+; 只结束测试用的 Edge（按它独有的配置目录识别）
+for p in ComObjGet("winmgmts:").ExecQuery("select ProcessId, CommandLine from Win32_Process where Name='msedge.exe'")
+	if InStr(p.CommandLine, "LAEdgeProfile") && !InStr(p.CommandLine, "--type=")
+		ProcessClose p.ProcessId
 
 ; 剪贴板保护
 A_Clipboard := "原来的剪贴板内容"
