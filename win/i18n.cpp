@@ -34,6 +34,7 @@ const Strings kZhCN = {
 	 L"紧急强制退出：‹Win›+‹Alt›+‹L›，托盘点不动时也能用。",
 	 L"程序会自我监控，内存或 CPU 异常时自动重启；万一崩溃也会在 1 秒内自动恢复。"},
 	L"下次启动时不再显示", L"开始使用",
+	L"语言", L"跟随系统", L"简体中文",
 };
 
 const Strings kZhTW = {
@@ -65,6 +66,7 @@ const Strings kZhTW = {
 	 L"緊急強制結束：‹Win›+‹Alt›+‹L›，系統匣沒有反應時也能用。",
 	 L"程式會自我監控，記憶體或 CPU 異常時自動重新啟動；萬一當掉也會在 1 秒內自動恢復。"},
 	L"下次啟動時不再顯示", L"開始使用",
+	L"語言", L"跟隨系統", L"繁體中文",
 };
 
 const Strings kJa = {
@@ -96,6 +98,7 @@ const Strings kJa = {
 	 L"緊急終了：‹Win›+‹Alt›+‹L›。トレイが反応しないときも使えます。",
 	 L"メモリや CPU の異常を自己監視し、異常時は自動で再起動します。万一クラッシュしても 1 秒以内に復帰します。"},
 	L"次回から表示しない", L"使い始める",
+	L"言語", L"システムに合わせる", L"日本語",
 };
 
 const Strings kEn = {
@@ -127,6 +130,7 @@ const Strings kEn = {
 	 L"Emergency quit: ‹Win›+‹Alt›+‹L›, even if the tray does not respond.",
 	 L"It watches its own memory and CPU and restarts itself if anything goes wrong; a crash recovers within a second."},
 	L"Don't show this at startup", L"Start",
+	L"Language", L"Follow system", L"English",
 };
 
 const Strings kKo = {
@@ -158,6 +162,7 @@ const Strings kKo = {
 	 L"긴급 강제 종료: ‹Win›+‹Alt›+‹L›. 트레이가 응답하지 않을 때도 사용할 수 있습니다.",
 	 L"메모리와 CPU를 스스로 감시하여 이상 시 자동으로 다시 시작하며, 충돌해도 1초 안에 복구됩니다."},
 	L"다음부터 시작할 때 표시하지 않음", L"시작하기",
+	L"언어", L"시스템 설정 따르기", L"한국어",
 };
 
 const Strings kVi = {
@@ -189,6 +194,7 @@ const Strings kVi = {
 	 L"Thoát khẩn cấp: ‹Win›+‹Alt›+‹L›, dùng được cả khi khay không phản hồi.",
 	 L"Chương trình tự giám sát bộ nhớ và CPU, tự khởi động lại khi bất thường; nếu bị lỗi cũng tự phục hồi trong 1 giây."},
 	L"Không hiển thị lại khi khởi động", L"Bắt đầu",
+	L"Ngôn ngữ", L"Theo hệ thống", L"Tiếng Việt",
 };
 
 const Strings kRu = {
@@ -220,6 +226,7 @@ const Strings kRu = {
 	 L"Аварийный выход: ‹Win›+‹Alt›+‹L› — работает, даже если трей не отвечает.",
 	 L"Программа следит за своей памятью и процессором и сама перезапускается при сбое; после аварии восстанавливается за секунду."},
 	L"Больше не показывать при запуске", L"Начать",
+	L"Язык", L"Как в системе", L"Русский",
 };
 
 const Strings kAr = {
@@ -251,6 +258,7 @@ const Strings kAr = {
 	 L"الخروج الطارئ: ‹Win›+‹Alt›+‹L›، يعمل حتى إن لم تستجب العلبة.",
 	 L"يراقب البرنامج ذاكرته ومعالجه ويعيد تشغيل نفسه عند الخلل، ويتعافى من الأعطال خلال ثانية."},
 	L"عدم الإظهار عند بدء التشغيل مرة أخرى", L"ابدأ",
+	L"اللغة", L"حسب لغة النظام", L"العربية",
 };
 
 const Strings kEs = {
@@ -282,6 +290,7 @@ const Strings kEs = {
 	 L"Salida de emergencia: ‹Win›+‹Alt›+‹L›, incluso si la bandeja no responde.",
 	 L"Vigila su propia memoria y CPU y se reinicia si algo falla; tras un cierre inesperado se recupera en un segundo."},
 	L"No volver a mostrar al iniciar", L"Empezar",
+	L"Idioma", L"Según el sistema", L"Español",
 };
 
 const Strings kPt = {
@@ -313,6 +322,7 @@ const Strings kPt = {
 	 L"Saída de emergência: ‹Win›+‹Alt›+‹L›, mesmo se a bandeja não responder.",
 	 L"Monitora a própria memória e CPU e se reinicia se algo der errado; após uma falha, volta em um segundo."},
 	L"Não mostrar novamente ao iniciar", L"Começar",
+	L"Idioma", L"Seguir o sistema", L"Português (Brasil)",
 };
 
 const Strings* Pick() {
@@ -335,16 +345,46 @@ const Strings* Pick() {
 
 }  // namespace
 
-const Strings& Lang() {
-	static const Strings* s = [] {
-		wchar_t v[16];
-		if (GetEnvironmentVariableW(L"LA_LANG", v, 16)) {   // 测试用：强制指定语言
-			for (const Strings* c : {&kZhCN, &kZhTW, &kJa, &kEn, &kKo, &kVi, &kRu, &kAr, &kEs, &kPt})
-				if (!lstrcmpiW(c->code, v)) return c;
-		}
-		return Pick();
-	}();
-	return *s;
+const Strings* const kAll[] = {&kZhCN, &kZhTW, &kJa, &kEn, &kKo, &kVi, &kRu, &kAr, &kEs, &kPt};
+const Strings* g_current = nullptr;
+wchar_t g_setting[16] = L"";   // 空 = 跟随系统
+constexpr wchar_t kRegKey[] = L"Software\\LatexAnywhere";
+
+const Strings* ByCode(const wchar_t* code) {
+	for (const Strings* c : kAll)
+		if (!lstrcmpiW(c->code, code)) return c;
+	return nullptr;
 }
+
+void Resolve() {
+	const Strings* s = nullptr;
+	wchar_t v[16];
+	if (GetEnvironmentVariableW(L"LA_LANG", v, 16)) s = ByCode(v);   // 测试用：强制指定语言
+	if (!s && g_setting[0]) s = ByCode(g_setting);
+	g_current = s ? s : Pick();
+}
+
+const Strings& Lang() {
+	if (!g_current) {
+		DWORD n = sizeof g_setting;
+		if (RegGetValueW(HKEY_CURRENT_USER, kRegKey, L"Language", RRF_RT_REG_SZ, nullptr, g_setting, &n) != ERROR_SUCCESS) g_setting[0] = 0;
+		Resolve();
+	}
+	return *g_current;
+}
+
+void SetLanguage(const wchar_t* code) {
+	lstrcpynW(g_setting, code ? code : L"", 16);
+	HKEY k;
+	if (RegCreateKeyExW(HKEY_CURRENT_USER, kRegKey, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &k, nullptr) == ERROR_SUCCESS) {
+		RegSetValueExW(k, L"Language", 0, REG_SZ, reinterpret_cast<const BYTE*>(g_setting), (DWORD)((lstrlenW(g_setting) + 1) * sizeof(wchar_t)));
+		RegCloseKey(k);
+	}
+	Resolve();
+}
+
+const wchar_t* LanguageSetting() { Lang(); return g_setting; }
+int LanguageCount() { return (int)(sizeof kAll / sizeof kAll[0]); }
+const Strings& LanguageAt(int i) { return *kAll[i]; }
 
 }  // namespace la

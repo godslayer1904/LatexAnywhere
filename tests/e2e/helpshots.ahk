@@ -26,8 +26,6 @@ Open(lang, extra, name) {
 	ProcessClose pid
 	Sleep 400
 }
-for lang in ["zh-TW", "ja", "ko"]
-	Open(lang, "--welcome", "welcome_" lang)
-Open("zh-CN", "--welcome", "welcome_zh-CN")
-Open("ar", "--welcome", "welcome_ar")
+for lang in ["zh-CN", "zh-TW", "ja", "en", "ko", "vi", "ru", "ar", "es", "pt-BR"]
+	Open(lang, "--welcome", lang)
 ExitApp 0

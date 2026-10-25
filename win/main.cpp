@@ -24,6 +24,7 @@ using namespace la;
 constexpr UINT WM_TRAY = WM_APP + 10;
 constexpr int HK_OPEN = 1, HK_KILL = 9;
 constexpr int ID_HELP = 101, ID_AUTOSTART = 102, ID_QUIT = 103;
+constexpr int ID_LANG_SYSTEM = 300, ID_LANG_FIRST = 301;   // 301.. 依次对应 LanguageAt(i)
 constexpr int kExitQuit = 0;          // 用户退出：守护进程也退出
 constexpr wchar_t kRunKey[] = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 constexpr wchar_t kRunName[] = L"LatexAnywhere";
@@ -110,6 +111,13 @@ void ShowTrayMenu() {
 	HMENU m = CreatePopupMenu();
 	AppendMenuW(m, MF_STRING, ID_HELP, Lang().trayHelp);
 	AppendMenuW(m, MF_STRING | (AutostartOn() ? MF_CHECKED : 0), ID_AUTOSTART, Lang().trayAutostart);
+	HMENU lm = CreatePopupMenu();
+	const wchar_t* cur = LanguageSetting();
+	AppendMenuW(lm, MF_STRING | (cur[0] ? 0 : MF_CHECKED), ID_LANG_SYSTEM, Lang().followSystem);
+	AppendMenuW(lm, MF_SEPARATOR, 0, nullptr);
+	for (int i = 0; i < LanguageCount(); i++)   // 每种语言都用它自己的文字显示，看不懂当前界面也能找到
+		AppendMenuW(lm, MF_STRING | (cur[0] && !lstrcmpiW(cur, LanguageAt(i).code) ? MF_CHECKED : 0), ID_LANG_FIRST + i, LanguageAt(i).nativeName);
+	AppendMenuW(m, MF_POPUP, (UINT_PTR)lm, Lang().trayLanguage);
 	AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
 	AppendMenuW(m, MF_STRING, ID_QUIT, Lang().trayQuit);
 	POINT pt;
@@ -120,6 +128,15 @@ void ShowTrayMenu() {
 	if (cmd == ID_HELP) OpenHelp();
 	else if (cmd == ID_AUTOSTART) AutostartSet(!AutostartOn());
 	else if (cmd == ID_QUIT) Quit("托盘退出");
+	else if (cmd == ID_LANG_SYSTEM || (cmd >= ID_LANG_FIRST && cmd < ID_LANG_FIRST + LanguageCount())) {
+		SetLanguage(cmd == ID_LANG_SYSTEM ? L"" : LanguageAt(cmd - ID_LANG_FIRST).code);
+		wcscpy_s(g_nid.szTip, Lang().trayTip);
+		g_nid.uFlags = NIF_TIP;
+		Shell_NotifyIconW(NIM_MODIFY, &g_nid);
+		g_nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+		if (HWND h = FindWindowW(L"LatexAnywhereHelp", nullptr)) { DestroyWindow(h); OpenHelp(); }   // 说明窗口开着：按新语言重开
+		Log("语言：%s", WideToUtf8(Lang().code).c_str());
+	}
 }
 
 LRESULT CALLBACK MsgProc(HWND h, UINT m, WPARAM w, LPARAM l) {

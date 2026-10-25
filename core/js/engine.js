@@ -8,6 +8,7 @@ import { history, defaultKeymap, historyKeymap, insertNewline } from "@codemirro
 import { StreamLanguage } from "@codemirror/language";
 import { editorLivePreviewField, editorInfoField, livePreviewState } from "obsidian";
 import LatexSuitePlugin from "./latex-suite/main";
+import { Work } from "./latex-suite/parser/language";
 
 const KEYCODES = { Tab: 9, Enter: 13, Backspace: 8, Delete: 46, Escape: 27, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, Home: 36, End: 35 };
 
@@ -15,6 +16,9 @@ let view = null, extensions = null, committed = false, cancelled = false;
 
 async function init(settings) {
 	globalThis.__la_settings = settings ?? null;
+	// 公式解析不设时间预算：原版每次按键只解析 20 ms，机器一忙就拿半棵语法树判断「是否在公式里」，结果出错。
+	// 公式框文本很短，每次都解析完整，结果才与机器快慢无关。
+	Work.Apply = 1e9;
 	const app = {
 		vault: { config: {}, adapter: { basePath: "" }, on: () => ({}), getAbstractFileByPath: () => null, configDir: ".obsidian" },
 		workspace: { onLayoutReady: (cb) => cb(), updateOptions() {}, on: () => ({}), getActiveViewOfType: () => null },

@@ -5,7 +5,9 @@
 ; 出错只写结果文件，绝不弹窗。
 SendMode "Event"
 SetKeyDelay 20, 10
-global OUT := "C:\Results\e2e.out.txt", rep := "", pass := 0, fail := 0, shotN := 0
+global RES := EnvGet("LA_E2E_RESULTS") || "C:\Results"   ; 结果目录：沙盒里是 C:\Results，真机上用环境变量指定
+DirCreate RES
+global OUT := RES "\e2e.out.txt", rep := "", pass := 0, fail := 0, shotN := 0
 OnError((e, m) => (FileOpen(OUT, "w", "UTF-8").Write(rep "`n运行错误：" e.Message " " e.Extra " 行 " e.Line), ExitApp(1)))
 
 R(ok, name, detail := "") {
@@ -39,7 +41,7 @@ Shot(name) {
 		return
 	WinGetPos &x, &y, &w, &hh, h
 	shotN++
-	f := "C:\Results\shot" Format("{:02}", shotN) "_" name ".png"
+	f := RES "\shot" Format("{:02}", shotN) "_" name ".png"
 	ps := "Add-Type -AssemblyName System.Drawing; $b = New-Object Drawing.Bitmap " w "," hh "; $g = [Drawing.Graphics]::FromImage($b); $g.CopyFromScreen(" x "," y ",0,0,$b.Size); $b.Save('" f "')"
 	RunWait 'powershell -NoProfile -Command "' ps '"', , "Hide"
 	WinActivate "ahk_id " h   ; 截图用的 PowerShell 可能抢走焦点：交还给公式框
@@ -141,6 +143,38 @@ R(!w3, "勾选后再次启动不再弹出")
 if w3
 	WinClose "ahk_class LatexAnywhereHelp"
 
+; ---------------- 托盘「语言」菜单：真实弹出菜单、用键盘选 ----------------
+TrayMenu(keys) {   ; 菜单顺序：使用说明、开机自启、语言 ▸、退出
+	DetectHiddenWindows True
+	PostMessage 0x800A, 0, 0x205, , "ahk_class LatexAnywhereMsg"   ; WM_TRAY + WM_RBUTTONUP
+	DetectHiddenWindows False
+	if !WinWait("ahk_class #32768", , 3)
+		return false
+	Sleep 300
+	Send keys
+	Sleep 800
+	return true
+}
+LangReg() => RegRead("HKCU\Software\LatexAnywhere", "Language", "(无)")
+HelpTitle() {   ; 从托盘打开说明窗口，读标题后关掉
+	TrayMenu("{Down}{Enter}")
+	if !WinWait("ahk_class LatexAnywhereHelp", , 5)
+		return "(没打开)"
+	t := WinGetTitle()
+	WinClose
+	WinWaitClose "ahk_class LatexAnywhereHelp", , 3
+	return t
+}
+sysTitle := HelpTitle()
+ok := TrayMenu("{Down 3}{Right}{Down 3}{Enter}")   ; 跟随系统、（分隔线）、简体、繁體、日本語
+jaTitle := HelpTitle()
+R(ok && LangReg() == "ja" && jaTitle == "LatexAnywhere の使い方", "托盘选「日本語」立即生效并保存", "注册表 " LangReg() "，标题 " jaTitle)
+RestartApp()
+R(HelpTitle() == "LatexAnywhere の使い方", "重启后仍是日文")
+TrayMenu("{Down 3}{Right}{Enter}")   ; 跟随系统
+t := HelpTitle()
+R(LangReg() == "" && t == sysTitle, "选「跟随系统」恢复系统语言", "注册表 [" LangReg() "]，标题 " t)
+
 TestCase("x^2 Tab 后上屏（LaTeX）", "x^2{Tab}", "{Enter}", "x^{2}", "x2")
 TestCase("分式 Tab 跳位", "//a{Tab}b{Tab}", "{Enter}", "\frac{a}{b}", "frac")
 TestCase("希腊字母", "@a+@b", "{Enter}", "\alpha+\beta")
@@ -182,7 +216,7 @@ EdgeVal() {
 	v := RegExReplace(v, " [-—] .*$", "")
 	return StrReplace(v, "\n", "`n")
 }
-Run '"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --no-first-run --no-default-browser-check --user-data-dir=C:\EdgeProfile --app=file:///C:/E2E/target.html'
+Run '"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --no-first-run --no-default-browser-check --user-data-dir=' A_Temp '\LAEdgeProfile --app=file:///' StrReplace(A_ScriptDir, '\', '/') '/target.html'
 if !WinWait("ahk_exe msedge.exe", , 20) {
 	R(false, "Edge 启动", "20 秒内没出现窗口")
 } else {

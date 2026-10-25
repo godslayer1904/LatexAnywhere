@@ -37,8 +37,17 @@ struct Strings {
 	// 首次启动欢迎窗口
 	const wchar_t* dontShow;
 	const wchar_t* startUsing;
+	// 托盘「语言」菜单
+	const wchar_t* trayLanguage;
+	const wchar_t* followSystem;
+	const wchar_t* nativeName;   // 本语言自己的名称（菜单里始终用它显示）
 };
 
 const Strings& Lang();   // 当前语言
+// 语言选择：code 为空 = 跟随系统；选择会保存到注册表
+void SetLanguage(const wchar_t* code);
+const wchar_t* LanguageSetting();             // 当前设置（空 = 跟随系统）
+int LanguageCount();
+const Strings& LanguageAt(int i);
 
 }  // namespace la
