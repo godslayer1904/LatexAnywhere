@@ -1,7 +1,7 @@
 // 界面文字（10 种语言）。随系统界面语言自动选择；没有对应语言时用英文。
 // 文字里 ‹…› 包住的是按键或代码，说明窗口里画成键帽样式。
 #pragma once
-#include <windows.h>
+#include <cwchar>
 
 namespace la {
 
@@ -41,6 +41,9 @@ struct Strings {
 	const wchar_t* trayLanguage;
 	const wchar_t* followSystem;
 	const wchar_t* nativeName;   // 本语言自己的名称（菜单里始终用它显示）
+	// Linux 版替换的文字（%1 = 自启菜单名，%2 = 退出菜单名）
+	const wchar_t* autostartLinux;
+	const wchar_t* trayLinux;
 };
 
 const Strings& Lang();   // 当前语言

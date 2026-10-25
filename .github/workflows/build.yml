@@ -47,8 +47,47 @@ jobs:
           name: LatexAnywhere-${{ matrix.arch }}
           path: build/LatexAnywhere.exe
 
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build JS bundles
+        run: |
+          cd core/js && npm ci --ignore-scripts && npx lezer-generator latex-suite/parser/mathjax/latex.grammar -o latex-suite/parser/mathjax/latex-parser && node build.mjs --minify
+          cd ../mathjax && npm ci --ignore-scripts && npx esbuild tex2svg.js --bundle --minify --format=iife --target=es2022 --platform=neutral --main-fields=module,main --outfile=dist/math.js
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-4-dev librsvg2-dev libatspi2.0-dev
+      - name: Build (CMake + Ninja)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+          strip build/latexanywhere
+      - name: Differential test (native QuickJS engine)
+        run: build/la_difftest build/bytecode/engine.qbc tests/golden/default.jsonl
+      - name: Package
+        run: |
+          mkdir -p dist/pkg && cp build/latexanywhere linux/install.sh LICENSE THIRD_PARTY_NOTICES.md dist/pkg/
+          tar -czf dist/latexanywhere-linux-${{ matrix.arch }}.tar.gz -C dist/pkg .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: latexanywhere-linux-${{ matrix.arch }}
+          path: dist/latexanywhere-linux-${{ matrix.arch }}.tar.gz
+
   installer:
-    needs: windows
+    needs: [windows, linux]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,18 +99,26 @@ jobs:
         with:
           name: LatexAnywhere-arm64
           path: dist/arm64
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: latexanywhere-linux-*
+          path: dist
+          merge-multiple: true
       - name: Build installer (Inno Setup)
         shell: pwsh
         run: |
           $v = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}".TrimStart("v") } else { "0.9.0-dev.${{ github.run_number }}" }
           $env:LA_VERSION = $v
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\LatexAnywhere.iss
-          Get-ChildItem dist\*.exe | ForEach-Object { (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() + "  " + $_.Name } | Out-File dist\SHA256SUMS.txt -Encoding ascii
+          Copy-Item linux\install.sh dist\install.sh
+          Get-ChildItem dist\*.exe, dist\*.tar.gz, dist\install.sh | ForEach-Object { (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() + "  " + $_.Name } | Out-File dist\SHA256SUMS.txt -Encoding ascii
       - uses: actions/upload-artifact@v4
         with:
           name: LatexAnywhere-Setup
           path: |
             dist/LatexAnywhere-Setup-*.exe
+            dist/latexanywhere-linux-*.tar.gz
+            dist/install.sh
             dist/SHA256SUMS.txt
       - name: Release (tags only)
         if: github.ref_type == 'tag'
@@ -80,4 +127,6 @@ jobs:
           draft: true
           files: |
             dist/LatexAnywhere-Setup-*.exe
+            dist/latexanywhere-linux-*.tar.gz
+            dist/install.sh
             dist/SHA256SUMS.txt

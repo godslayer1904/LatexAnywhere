@@ -1,6 +1,15 @@
 #include "i18n.h"
 
 #include <initializer_list>
+#include <cstdlib>
+#include <cstring>
+#include <cwctype>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <string>
+#include <sys/stat.h>
+#endif
 
 namespace la {
 namespace {
@@ -35,6 +44,7 @@ const Strings kZhCN = {
 	 L"程序会自我监控，内存或 CPU 异常时自动重启；万一崩溃也会在 1 秒内自动恢复。"},
 	L"下次启动时不再显示", L"开始使用",
 	L"语言", L"跟随系统", L"简体中文",
+	L"登录时自动启动", L"程序在屏幕顶栏右侧运行（紫色 ∑ 图标），点它可以开关「%1」，或者「%2」。",
 };
 
 const Strings kZhTW = {
@@ -67,6 +77,7 @@ const Strings kZhTW = {
 	 L"程式會自我監控，記憶體或 CPU 異常時自動重新啟動；萬一當掉也會在 1 秒內自動恢復。"},
 	L"下次啟動時不再顯示", L"開始使用",
 	L"語言", L"跟隨系統", L"繁體中文",
+	L"登入時自動啟動", L"程式在螢幕頂欄右側執行（紫色 ∑ 圖示），點它可以開關「%1」或「%2」。",
 };
 
 const Strings kJa = {
@@ -99,6 +110,7 @@ const Strings kJa = {
 	 L"メモリや CPU の異常を自己監視し、異常時は自動で再起動します。万一クラッシュしても 1 秒以内に復帰します。"},
 	L"次回から表示しない", L"使い始める",
 	L"言語", L"システムに合わせる", L"日本語",
+	L"ログイン時に自動起動", L"画面上部のトップバー右側で動いています（紫の ∑ アイコン）。クリックすると「%1」の切り替えや「%2」ができます。",
 };
 
 const Strings kEn = {
@@ -131,6 +143,7 @@ const Strings kEn = {
 	 L"It watches its own memory and CPU and restarts itself if anything goes wrong; a crash recovers within a second."},
 	L"Don't show this at startup", L"Start",
 	L"Language", L"Follow system", L"English",
+	L"Start at login", L"It runs in the top bar (purple ∑ icon). Click it to toggle %1 or to %2.",
 };
 
 const Strings kKo = {
@@ -163,6 +176,7 @@ const Strings kKo = {
 	 L"메모리와 CPU를 스스로 감시하여 이상 시 자동으로 다시 시작하며, 충돌해도 1초 안에 복구됩니다."},
 	L"다음부터 시작할 때 표시하지 않음", L"시작하기",
 	L"언어", L"시스템 설정 따르기", L"한국어",
+	L"로그인 시 자동 시작", L"화면 상단 막대 오른쪽에서 실행됩니다(보라색 ∑ 아이콘). 클릭하면 「%1」을 켜고 끄거나 「%2」할 수 있습니다.",
 };
 
 const Strings kVi = {
@@ -195,6 +209,7 @@ const Strings kVi = {
 	 L"Chương trình tự giám sát bộ nhớ và CPU, tự khởi động lại khi bất thường; nếu bị lỗi cũng tự phục hồi trong 1 giây."},
 	L"Không hiển thị lại khi khởi động", L"Bắt đầu",
 	L"Ngôn ngữ", L"Theo hệ thống", L"Tiếng Việt",
+	L"Khởi động khi đăng nhập", L"Chương trình chạy trên thanh trên cùng (biểu tượng ∑ màu tím). Nhấp vào để bật/tắt “%1” hoặc “%2”.",
 };
 
 const Strings kRu = {
@@ -227,6 +242,7 @@ const Strings kRu = {
 	 L"Программа следит за своей памятью и процессором и сама перезапускается при сбое; после аварии восстанавливается за секунду."},
 	L"Больше не показывать при запуске", L"Начать",
 	L"Язык", L"Как в системе", L"Русский",
+	L"Запускать при входе", L"Программа работает в верхней панели (фиолетовый значок ∑). Нажмите на него, чтобы включить или выключить «%1» или выбрать «%2».",
 };
 
 const Strings kAr = {
@@ -259,6 +275,7 @@ const Strings kAr = {
 	 L"يراقب البرنامج ذاكرته ومعالجه ويعيد تشغيل نفسه عند الخلل، ويتعافى من الأعطال خلال ثانية."},
 	L"عدم الإظهار عند بدء التشغيل مرة أخرى", L"ابدأ",
 	L"اللغة", L"حسب لغة النظام", L"العربية",
+	L"التشغيل عند تسجيل الدخول", L"يعمل البرنامج في الشريط العلوي (أيقونة ∑ البنفسجية). انقر عليها لتشغيل «%1» أو إيقافه، أو لاختيار «%2».",
 };
 
 const Strings kEs = {
@@ -291,6 +308,7 @@ const Strings kEs = {
 	 L"Vigila su propia memoria y CPU y se reinicia si algo falla; tras un cierre inesperado se recupera en un segundo."},
 	L"No volver a mostrar al iniciar", L"Empezar",
 	L"Idioma", L"Según el sistema", L"Español",
+	L"Iniciar al iniciar sesión", L"Se ejecuta en la barra superior (icono ∑ morado). Haz clic en él para activar o desactivar «%1» o para «%2».",
 };
 
 const Strings kPt = {
@@ -323,8 +341,10 @@ const Strings kPt = {
 	 L"Monitora a própria memória e CPU e se reinicia se algo der errado; após uma falha, volta em um segundo."},
 	L"Não mostrar novamente ao iniciar", L"Começar",
 	L"Idioma", L"Seguir o sistema", L"Português (Brasil)",
+	L"Iniciar ao entrar", L"Ele roda na barra superior (ícone ∑ roxo). Clique nele para ligar ou desligar “%1” ou para “%2”.",
 };
 
+#ifdef _WIN32
 const Strings* Pick() {
 	LANGID id = GetUserDefaultUILanguage();
 	switch (PRIMARYLANGID(id)) {
@@ -342,6 +362,27 @@ const Strings* Pick() {
 	default: return &kEn;
 	}
 }
+#else
+const Strings* Pick() {
+	// LANGUAGE（可含多个，取第一个）> LC_ALL > LC_MESSAGES > LANG，形如 zh_CN.UTF-8
+	const char* v = nullptr;
+	for (const char* k : {"LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"}) {
+		const char* e = getenv(k);
+		if (e && *e && strcmp(e, "C") && strcmp(e, "POSIX")) { v = e; break; }
+	}
+	if (!v) return &kEn;
+	auto is = [&](const char* p) { return !strncmp(v, p, strlen(p)); };
+	if (is("zh")) return (is("zh_TW") || is("zh_HK") || is("zh_MO") || strstr(v, "Hant")) ? &kZhTW : &kZhCN;
+	if (is("ja")) return &kJa;
+	if (is("ko")) return &kKo;
+	if (is("vi")) return &kVi;
+	if (is("ru")) return &kRu;
+	if (is("ar")) return &kAr;
+	if (is("es")) return &kEs;
+	if (is("pt")) return &kPt;
+	return &kEn;
+}
+#endif
 
 }  // namespace
 
@@ -350,36 +391,83 @@ const Strings* g_current = nullptr;
 wchar_t g_setting[16] = L"";   // 空 = 跟随系统
 constexpr wchar_t kRegKey[] = L"Software\\LatexAnywhere";
 
+bool SameCode(const wchar_t* a, const wchar_t* b) {
+	for (; *a && *b; a++, b++)
+		if (towlower(*a) != towlower(*b)) return false;
+	return *a == *b;
+}
+
 const Strings* ByCode(const wchar_t* code) {
 	for (const Strings* c : kAll)
-		if (!lstrcmpiW(c->code, code)) return c;
+		if (SameCode(c->code, code)) return c;
 	return nullptr;
 }
 
+#ifndef _WIN32
+// Linux：语言设置存 ~/.config/LatexAnywhere/language（一行，如 ja；空 = 跟随系统）
+std::string SettingFile() {
+	const char* x = getenv("XDG_CONFIG_HOME");
+	std::string d = (x && *x) ? x : std::string(getenv("HOME") ? getenv("HOME") : "/tmp") + "/.config";
+	d += "/LatexAnywhere";
+	mkdir(d.c_str(), 0700);
+	return d + "/language";
+}
+#endif
+
 void Resolve() {
 	const Strings* s = nullptr;
+#ifdef _WIN32
 	wchar_t v[16];
 	if (GetEnvironmentVariableW(L"LA_LANG", v, 16)) s = ByCode(v);   // 测试用：强制指定语言
+#else
+	if (const char* e = getenv("LA_LANG")) {
+		wchar_t v[16] = {};
+		for (int i = 0; i < 15 && e[i]; i++) v[i] = (unsigned char)e[i];
+		s = ByCode(v);
+	}
+#endif
 	if (!s && g_setting[0]) s = ByCode(g_setting);
 	g_current = s ? s : Pick();
 }
 
 const Strings& Lang() {
 	if (!g_current) {
+#ifdef _WIN32
 		DWORD n = sizeof g_setting;
 		if (RegGetValueW(HKEY_CURRENT_USER, kRegKey, L"Language", RRF_RT_REG_SZ, nullptr, g_setting, &n) != ERROR_SUCCESS) g_setting[0] = 0;
+#else
+		g_setting[0] = 0;
+		if (FILE* f = fopen(SettingFile().c_str(), "r")) {
+			char b[16] = {};
+			if (fgets(b, sizeof b, f)) {
+				int i = 0;
+				for (; i < 15 && b[i] && b[i] != '\n' && b[i] != '\r'; i++) g_setting[i] = (unsigned char)b[i];
+				g_setting[i] = 0;
+			}
+			fclose(f);
+		}
+#endif
 		Resolve();
 	}
 	return *g_current;
 }
 
 void SetLanguage(const wchar_t* code) {
-	lstrcpynW(g_setting, code ? code : L"", 16);
+	wcsncpy(g_setting, code ? code : L"", 15);
+	g_setting[15] = 0;
+#ifdef _WIN32
 	HKEY k;
 	if (RegCreateKeyExW(HKEY_CURRENT_USER, kRegKey, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &k, nullptr) == ERROR_SUCCESS) {
 		RegSetValueExW(k, L"Language", 0, REG_SZ, reinterpret_cast<const BYTE*>(g_setting), (DWORD)((lstrlenW(g_setting) + 1) * sizeof(wchar_t)));
 		RegCloseKey(k);
 	}
+#else
+	if (FILE* f = fopen(SettingFile().c_str(), "w")) {
+		for (const wchar_t* p = g_setting; *p; p++) fputc((char)*p, f);
+		fputc('\n', f);
+		fclose(f);
+	}
+#endif
 	Resolve();
 }
 
