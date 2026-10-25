@@ -254,6 +254,8 @@ int RunGuardian() {
 	std::string lock = StateDir() + "/guardian.lock";
 	int lfd = open(lock.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
 	if (lfd < 0 || flock(lfd, LOCK_EX | LOCK_NB) != 0) return 0;   // 已有守护进程
+	// 旧实例可能正在退出（升级、重装时紧接着启动）：最多等 3 秒，确实还在跑才放弃
+	for (int i = 0; i < 30 && PrimaryRunning(); i++) usleep(100000);
 	if (PrimaryRunning()) return 0;
 	std::string exe = ExePath();
 	bool restarted = false;
@@ -307,7 +309,12 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 	if (toggle || quit || help) {
-		if (PrimaryRunning()) return RunLauncher(argc, argv);
+		if (PrimaryRunning()) {
+			int r = RunLauncher(argc, argv);
+			if (quit)   // 等它真正退出再返回：安装、卸载脚本紧接着就要替换文件或重新启动
+				for (int i = 0; i < 50 && PrimaryRunning(); i++) usleep(100000);
+			return r;
+		}
 		if (help) return ShowHelpStandalone(welcome);
 		if (quit) return 0;
 		// 按了 Alt+L 但程序没在运行（比如被手动退出了）：直接启动它

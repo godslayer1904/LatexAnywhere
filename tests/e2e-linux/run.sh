@@ -5,13 +5,16 @@
 set -u
 EXE=$(readlink -f "${1:-build/latexanywhere}")
 HERE=$(cd "$(dirname "$0")" && pwd)
+export LA_E2E=/tmp/la-e2e LA_EXE="$EXE"
 if [ -z "${LA_E2E_INNER:-}" ]; then
 	export LA_E2E_INNER=1
+	rm -rf "$LA_E2E"; mkdir -p "$LA_E2E"
+	# 独立的运行时目录，而且要在起会话总线之前设好：总线按需拉起的服务（无障碍总线等）用的是它启动时的环境。
+	# 绝不能和真实会话共用 /run/user/<uid>：测试里的无障碍总线退出时会删掉同名连接文件，真实桌面的 AT-SPI 就断了（2026-10-25 踩过）
+	export XDG_RUNTIME_DIR=$LA_E2E/run
+	mkdir -m 700 -p "$XDG_RUNTIME_DIR"
 	exec timeout 1200 dbus-run-session -- "$0" "$EXE"
 fi
-export LA_E2E=/tmp/la-e2e LA_EXE="$EXE"
-rm -rf "$LA_E2E"; mkdir -p "$LA_E2E"
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
 export XDG_CONFIG_HOME=$LA_E2E/config XDG_STATE_HOME=$LA_E2E/state XDG_DATA_HOME=$LA_E2E/data
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_STATE_HOME" "$XDG_DATA_HOME"
 # 与 Windows 测试相同：放入用户的 Latex Suite 设置（个人文件，不进仓库；没有就用默认设置）
@@ -21,6 +24,8 @@ export LA_NO_SHORTCUTS=1 LA_PASTE_BACKEND=mutter LA_TRACE=1   # 无头环境：�
 export LANG=zh_CN.UTF-8 LANGUAGE=zh_CN
 export GTK_A11Y=atspi NO_AT_BRIDGE=0
 unset DISPLAY
+# 测试专用的空密钥环（放在临时 XDG_DATA_HOME，已解锁）：否则在线账户服务要求解锁，GNOME 弹出的系统对话框会抢走键盘
+eval "$(printf '' | gnome-keyring-daemon --unlock --components=secrets 2>/dev/null)" ; export GNOME_KEYRING_CONTROL
 DISP=la-e2e-$$
 gnome-shell --headless --wayland --wayland-display=$DISP --virtual-monitor 1600x900 --no-x11 --unsafe-mode >"$LA_E2E/shell.log" 2>&1 &
 SHELL_PID=$!

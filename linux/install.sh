@@ -78,5 +78,7 @@ fi
 mkdir -p "$HOME/.config/autostart"
 cp "$APPS/latexanywhere.desktop" "$HOME/.config/autostart/latexanywhere.desktop"
 echo "X-GNOME-Autostart-enabled=true" >>"$HOME/.config/autostart/latexanywhere.desktop"
-nohup "$BIN/latexanywhere" >/dev/null 2>&1 &
+# 交给 systemd 用户实例驻留（不随终端、ssh 关闭而退出）；没有 systemd 就用 nohup
+if command -v systemd-run >/dev/null && systemd-run --user --collect --quiet "$BIN/latexanywhere" --foreground 2>/dev/null; then :
+else nohup "$BIN/latexanywhere" >/dev/null 2>&1 & fi
 say "装好了：在任意输入框按 Alt+L 打公式（托盘图标在顶栏右侧）"

@@ -130,34 +130,65 @@ void la_clip_finalize(GObject* o) {
 	G_OBJECT_CLASS(la_clip_parent_class)->finalize(o);
 }
 GdkContentFormats* la_clip_ref_formats(GdkContentProvider* p) { return gdk_content_formats_ref(((LaClip*)p)->d->formats); }
+// 现在该给出的文字：恢复前是公式；恢复后是原内容里的 UTF-8 文字（没有就是空）
+const std::string* CurrentText(ClipData* d) {
+	if (!d->restored) return &d->formula;
+	static thread_local std::string old;
+	for (auto& o : d->old)
+		if (o.first == "text/plain;charset=utf-8") { gsize n; const char* b = (const char*)g_bytes_get_data(o.second, &n); old.assign(b, n); return &old; }
+	return nullptr;
+}
+gboolean la_clip_get_value(GdkContentProvider* p, GValue* v, GError** e) {
+	const std::string* t = CurrentText(((LaClip*)p)->d);
+	if (G_VALUE_HOLDS(v, G_TYPE_STRING) && t) { g_value_set_string(v, t->c_str()); return TRUE; }
+	g_set_error(e, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED, "no text");
+	return FALSE;
+}
 void la_clip_write_async(GdkContentProvider* p, const char* mime, GOutputStream* stream, int prio, GCancellable* c, GAsyncReadyCallback cb, gpointer data) {
 	GTask* task = g_task_new(p, c, cb, data);
 	ClipData* d = ((LaClip*)p)->d;
-	GBytes* bytes = nullptr;
-	if (!d->restored && IsText(mime)) bytes = g_bytes_new(d->formula.data(), d->formula.size());
-	else
+	if (Trace()) Log("跟踪：剪贴板被读取 %s（已恢复=%d）", mime, (int)d->restored);
+	// 原内容的非文字格式（图片等），以及恢复后的一切格式：原样给出快照
+	if (d->restored || !IsText(mime)) {
 		for (auto& o : d->old)
-			if (o.first == mime) { bytes = g_bytes_ref(o.second); break; }
-	if (!bytes) {
+			if (o.first == mime) {
+				GBytes* bytes = g_bytes_ref(o.second);
+				g_task_set_task_data(task, bytes, (GDestroyNotify)g_bytes_unref);
+				gsize n;
+				const void* buf = g_bytes_get_data(bytes, &n);
+				g_output_stream_write_all_async(stream, buf, n, prio, c, [](GObject* s, GAsyncResult* r, gpointer t) {
+					GError* e = nullptr;
+					if (g_output_stream_write_all_finish(G_OUTPUT_STREAM(s), r, nullptr, &e)) g_task_return_boolean(G_TASK(t), TRUE);
+					else g_task_return_error(G_TASK(t), e);
+					g_object_unref(t);
+				}, task);
+				return;
+			}
+	}
+	// 文字：交给 GTK 自己的序列化（与 gdk_clipboard_set_text 完全相同的路径；自己写字节流 Chrome 读不到，实测）
+	const std::string* t = CurrentText(d);
+	if (!t || !IsText(mime)) {
 		g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED, "no such format");
 		g_object_unref(task);
 		return;
 	}
-	g_task_set_task_data(task, bytes, (GDestroyNotify)g_bytes_unref);
-	gsize n;
-	const void* buf = g_bytes_get_data(bytes, &n);
-	g_output_stream_write_all_async(stream, buf, n, prio, c, [](GObject* s, GAsyncResult* r, gpointer t) {
+	GValue v = G_VALUE_INIT;
+	g_value_init(&v, G_TYPE_STRING);
+	g_value_set_string(&v, t->c_str());
+	gdk_content_serialize_async(stream, mime, &v, prio, c, [](GObject*, GAsyncResult* r, gpointer t) {
 		GError* e = nullptr;
-		if (g_output_stream_write_all_finish(G_OUTPUT_STREAM(s), r, nullptr, &e)) g_task_return_boolean(G_TASK(t), TRUE);
+		if (gdk_content_serialize_finish(r, &e)) g_task_return_boolean(G_TASK(t), TRUE);
 		else g_task_return_error(G_TASK(t), e);
 		g_object_unref(t);
 	}, task);
+	g_value_unset(&v);
 }
 gboolean la_clip_write_finish(GdkContentProvider*, GAsyncResult* r, GError** e) { return g_task_propagate_boolean(G_TASK(r), e); }
 void la_clip_class_init(LaClipClass* k) {
 	G_OBJECT_CLASS(k)->finalize = la_clip_finalize;
 	GdkContentProviderClass* pk = GDK_CONTENT_PROVIDER_CLASS(k);
 	pk->ref_formats = la_clip_ref_formats;
+	pk->get_value = la_clip_get_value;
 	pk->write_mime_type_async = la_clip_write_async;
 	pk->write_mime_type_finish = la_clip_write_finish;
 }
@@ -353,7 +384,7 @@ void Box::Commit(CommitMode mode) {
 	LaClip* lc = (LaClip*)g_object_new(la_clip_get_type(), nullptr);
 	lc->d->formula = ToUtf8(text);
 	GdkContentFormatsBuilder* fb = gdk_content_formats_builder_new();
-	for (const char* t : kTextMimes) gdk_content_formats_builder_add_mime_type(fb, t);
+	gdk_content_formats_builder_add_gtype(fb, G_TYPE_STRING);   // 文字格式由 GTK 按字符串类型展开（同 gdk_clipboard_set_text）
 	if (clipPending_ == 0)
 		for (ClipItem& c : clip_) { lc->d->old.push_back({c.mime, g_bytes_ref(c.data)}); gdk_content_formats_builder_add_mime_type(fb, c.mime.c_str()); }
 	else lc->d->old.clear();
