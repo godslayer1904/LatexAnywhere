@@ -218,11 +218,14 @@ size_t Engine::MemoryUsed() const {
 	return static_cast<size_t>(u.malloc_size);
 }
 
+void Engine::CollectGarbage() { if (rt_) JS_RunGC(rt_); }
+
 bool Engine::Init(const std::vector<Script>& scripts, const std::string& settingsJson, std::string* error) {
 	rt_ = JS_NewRuntime();
 	if (!rt_) { if (error) *error = "JS_NewRuntime failed"; return false; }
 	JS_SetMemoryLimit(rt_, 256u * 1024 * 1024);   // 防失控：引擎正常用量是几 MB
 	JS_SetMaxStackSize(rt_, 4u * 1024 * 1024);
+	JS_SetGCThreshold(rt_, 16u * 1024 * 1024);    // 回收阈值调大：打字过程中少触发回收（收起后会主动回收）
 	JS_SetModuleLoaderFunc(rt_, NormalizeModule, LoadModule, nullptr);
 	ctx_ = JS_NewContext(rt_);
 	if (!ctx_) { if (error) *error = "JS_NewContext failed"; return false; }
@@ -247,11 +250,11 @@ bool Engine::Init(const std::vector<Script>& scripts, const std::string& setting
 
 	for (const Script& sc : scripts) {
 		if (sc.bytecode) {
-			JSValue fn = JS_ReadObject(ctx_, reinterpret_cast<const uint8_t*>(sc.data.data()), sc.data.size(), JS_READ_OBJ_BYTECODE);
+			JSValue fn = JS_ReadObject(ctx_, reinterpret_cast<const uint8_t*>(sc.data), sc.size, JS_READ_OBJ_BYTECODE);
 			if (JS_IsException(fn)) return fail(sc.name);
 			r = JS_EvalFunction(ctx_, fn);
 		} else {
-			r = JS_Eval(ctx_, sc.data.data(), sc.data.size(), sc.name, JS_EVAL_TYPE_GLOBAL);
+			r = JS_Eval(ctx_, sc.data, sc.size, sc.name, JS_EVAL_TYPE_GLOBAL);
 		}
 		if (JS_IsException(r)) return fail(sc.name);
 		JS_FreeValue(ctx_, r);
@@ -417,7 +420,7 @@ bool Engine::Compile(const std::string& source, std::vector<uint8_t>* out, std::
 		if (error) *error = TakeException(ctx);
 	} else {
 		size_t size = 0;
-		uint8_t* buf = JS_WriteObject(ctx, &size, fn, JS_WRITE_OBJ_BYTECODE);
+		uint8_t* buf = JS_WriteObject(ctx, &size, fn, JS_WRITE_OBJ_BYTECODE | JS_WRITE_OBJ_STRIP_SOURCE);   // 去掉源码（体积更小）；调试信息保留：动态 import() 靠它定位调用方
 		if (buf) { out->assign(buf, buf + size); js_free(ctx, buf); ok = true; }
 		JS_FreeValue(ctx, fn);
 	}

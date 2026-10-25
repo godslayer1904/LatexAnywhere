@@ -36,7 +36,7 @@ if(WIN32)
     set(_dep "")
   else()
     set(_compiler $<TARGET_FILE:la_compile>)
-    set(_dep la_compile)
+    set(_dep la_compile $<TARGET_FILE:la_compile>)   # 依赖可执行文件本身：la_compile 变了就重新生成字节码
   endif()
   add_custom_command(OUTPUT ${LA_BYTECODE_DIR}/engine.qbc ${LA_BYTECODE_DIR}/math.qbc
     COMMAND ${CMAKE_COMMAND} -E make_directory ${LA_BYTECODE_DIR}

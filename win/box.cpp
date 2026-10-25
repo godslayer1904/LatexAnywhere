@@ -21,6 +21,7 @@ namespace {
 
 constexpr UINT WM_APP_PREVIEW = WM_APP + 1;
 constexpr UINT WM_APP_SYNC = WM_APP + 2;
+constexpr UINT WM_APP_IDLE = WM_APP + 3;
 constexpr wchar_t kBoxClass[] = L"LatexAnywhereBox";
 
 // ---------- 后台动作线程：上屏、取消、切输入法都在这里依次执行（含等待），不卡界面 ----------
@@ -241,6 +242,7 @@ void Box::FocusBox() {
 void Box::Hide() {
 	visible_ = false;
 	ShowWindow(hwnd_, SW_HIDE);
+	PostMessageW(hwnd_, WM_APP_IDLE, 0, 0);   // 上屏/取消的动作先交出去，空闲了再回收
 }
 
 void Box::Commit(CommitMode mode) {
@@ -559,6 +561,13 @@ LRESULT Box::OnMessage(UINT m, WPARAM w, LPARAM l) {
 	}
 	case WM_APP_PREVIEW: UpdatePreview(); InvalidateRect(hwnd_, nullptr, FALSE); return 0;
 	case WM_APP_SYNC: if (!composing_ && visible_) SyncFromControl(); return 0;
+	case WM_APP_IDLE:
+		if (!visible_) {
+			double t0 = NowMs();
+			eng_->CollectGarbage();
+			Log("收起：回收 %.0fms，JS 内存 %.1f MB", NowMs() - t0, eng_->MemoryUsed() / 1048576.0);
+		}
+		return 0;
 	case WM_COMMAND:
 		if ((HWND)l == edit_ && HIWORD(w) == EN_CHANGE && !applying_ && !composing_ && visible_) PostMessageW(hwnd_, WM_APP_SYNC, 0, 0);
 		return 0;

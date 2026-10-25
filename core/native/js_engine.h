@@ -32,11 +32,12 @@ public:
 	Engine(const Engine&) = delete;
 	Engine& operator=(const Engine&) = delete;
 
-	struct Script { std::string data; bool bytecode; const char* name; };
+	// data/size 可直接指向 exe 资源（只读映射内存），不必复制
+	struct Script { const char* data; size_t size; bool bytecode; const char* name; };
 	// scripts：engine.js、math.js 等（源码或 QuickJS 字节码）；settingsJson：Latex Suite 的 data.json 内容，空则用默认设置
 	bool Init(const std::vector<Script>& scripts, const std::string& settingsJson, std::string* error);
 	bool Init(const std::string& script, bool isBytecode, const std::string& settingsJson, std::string* error) {
-		return Init({{script, isBytecode, "engine.js"}}, settingsJson, error);
+		return Init({{script.data(), script.size(), isBytecode, "engine.js"}}, settingsJson, error);
 	}
 
 	EditResult Reset(const std::u16string& doc, int anchor, int head);
@@ -51,6 +52,7 @@ public:
 	// 运行到期的定时器与微任务（宿主在空闲时调用）
 	void RunPending();
 	size_t MemoryUsed() const;
+	void CollectGarbage();   // 空闲时调用（框收起后），避免打字时触发回收
 
 	// 把 engine.js 编译成字节码（构建时用）
 	static bool Compile(const std::string& source, std::vector<uint8_t>* out, std::string* error);

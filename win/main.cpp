@@ -36,6 +36,13 @@ bool g_zh = true;
 const wchar_t* T(const wchar_t* zh, const wchar_t* en) { return g_zh ? zh : en; }
 
 // ---------- 资源 ----------
+// 指向 exe 映像里的资源（只读、按需换页，不占私有内存）
+Engine::Script ResScript(int id, const char* name) {
+	HRSRC r = FindResourceW(g_inst, MAKEINTRESOURCEW(id), RT_RCDATA);
+	if (!r) return {nullptr, 0, true, name};
+	HGLOBAL g = LoadResource(g_inst, r);
+	return {static_cast<const char*>(LockResource(g)), SizeofResource(g_inst, r), true, name};
+}
 std::string LoadRes(int id) {
 	HRSRC r = FindResourceW(g_inst, MAKEINTRESOURCEW(id), RT_RCDATA);
 	if (!r) return {};
@@ -191,12 +198,12 @@ int RunWorker() {
 	std::string settings = FindObsidianSettings(&from);
 	g_eng = new Engine;
 	std::string err;
-	if (!g_eng->Init({{LoadRes(IDR_ENGINE), true, "engine"}, {LoadRes(IDR_MATH), true, "math"}}, settings, &err)) {
+	if (!g_eng->Init({ResScript(IDR_ENGINE, "engine"), ResScript(IDR_MATH, "math")}, settings, &err)) {
 		Log("引擎初始化失败（设置来源 %s）：%s", WideToUtf8(from).c_str(), err.c_str());
 		if (!settings.empty()) {   // 设置文件有问题：退回默认设置，不能因此用不了
 			delete g_eng;
 			g_eng = new Engine;
-			if (!g_eng->Init({{LoadRes(IDR_ENGINE), true, "engine"}, {LoadRes(IDR_MATH), true, "math"}}, "", &err)) { Log("默认设置也失败：%s", err.c_str()); return 2; }
+			if (!g_eng->Init({ResScript(IDR_ENGINE, "engine"), ResScript(IDR_MATH, "math")}, "", &err)) { Log("默认设置也失败：%s", err.c_str()); return 2; }
 			from = L"默认设置（Obsidian 设置读取失败）";
 		} else {
 			return 2;
