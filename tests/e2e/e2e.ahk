@@ -97,7 +97,7 @@ TestCase(name, keys, commit, expected, shotName := "") {
 		Shot(shotName)
 	Send commit
 	h := WaitBox(false)
-	Sleep 700   ; 粘贴等待 + 剪贴板恢复
+	Sleep 700   ; 等粘贴落地
 	got := StrReplace(GEd.Value, "`r", "")
 	R(h >= 0 && (expected == "__ANY__" || got == expected), name, "期望 [" expected "] 得到 [" got "]" (h < 0 ? "（框没收起）" : ""))
 }
@@ -291,20 +291,19 @@ for p in ComObjGet("winmgmts:").ExecQuery("select ProcessId, CommandLine from Wi
 	if InStr(p.CommandLine, "LAEdgeProfile") && !InStr(p.CommandLine, "--type=")
 		ProcessClose p.ProcessId
 
-; 剪贴板保护
-A_Clipboard := "原来的剪贴板内容"
-Sleep 200
-TestCase("剪贴板保护用例", "//1{Tab}2{Tab}", "{Enter}", "\frac{1}{2}")
-cb := A_Clipboard
-want := "原来的剪贴板内容"
-hx(t) {
-	o := ""
-	loop parse t
-		o .= Format("{:04X} ", Ord(A_LoopField))
-	return o
+; 上屏的内容留在剪贴板里（四种上屏方式都要）：万一目标没接住，用户还能自己再粘贴
+ClipCase(name, keys, commit, expected) {
+	A_Clipboard := "上屏前的剪贴板"
+	Sleep 200
+	TestCase(name, keys, commit, expected == "__MATHML__" ? "__ANY__" : expected)
+	cb := A_Clipboard
+	ok := expected == "__MATHML__" ? (InStr(cb, "<math") == 1) : (cb == expected)
+	R(ok, name "：剪贴板里留着上屏内容", "剪贴板 [" SubStr(cb, 1, 60) "]")
 }
-rep .= "  剪贴板 " hx(cb) "`n  期望   " hx(want) "`n"
-R(cb == want, "上屏后剪贴板原样", "现在是 [" cb "] 长度 " StrLen(cb) " 末字符 " (StrLen(cb) ? Ord(SubStr(cb, -1)) : 0))
+ClipCase("剪贴板：Enter", "//1{Tab}2{Tab}", "{Enter}", "\frac{1}{2}")
+ClipCase("剪贴板：Alt+Enter", "x^2{Tab}", "!{Enter}", "$x^{2}$")
+ClipCase("剪贴板：Ctrl+Enter", "x^2{Tab}+@a", "^{Enter}", "x²+α")
+ClipCase("剪贴板：Ctrl+Shift+Enter", "x^2{Tab}", "^+{Enter}", "__MATHML__")
 
 ; 弹框延迟
 s := 0, mx := 0
@@ -370,16 +369,23 @@ loop 300 {
 	Send "!l"
 	if (WaitBox(true, 2000) < 0) {
 		soakFail++
+		if (soakFail <= 10)
+			rep .= "  浸泡第 " A_Index " 次：框没弹出`n"
 		continue
 	}
 	SendText "a_" Mod(A_Index, 10)
 	Send "{Tab}"
 	SendText "+@b"
 	Send "{Enter}"
-	WaitBox(false, 2000)
+	hid := WaitBox(false, 2000)
 	Sleep 450
-	if (StrReplace(GEd.Value, "`r", "") != "a_{" Mod(A_Index, 10) "}+\beta")
+	want := "a_{" Mod(A_Index, 10) "}+\beta"
+	got := StrReplace(GEd.Value, "`r", "")
+	if (got != want) {
 		soakFail++
+		if (soakFail <= 10)
+			rep .= "  浸泡第 " A_Index " 次：期望 [" want "] 得到 [" got "]" (hid < 0 ? "（框没收起）" : "") "`n"
+	}
 	if (Mod(A_Index, 50) == 0)
 		samples .= A_Index ":" MemOf(wp) "MB "
 }

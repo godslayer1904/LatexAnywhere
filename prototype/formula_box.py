@@ -140,9 +140,8 @@ def grab_selection():
     return got.replace("\r\n", "\n")
 
 def paste_text(s, settle=0.3, after=None):
-    """临时借用剪贴板粘贴，再恢复原内容。settle：按 Ctrl+V 后等多久再恢复——Word/PowerPoint 转换 MathML 慢，
-    恢复太早它会读到被换回去的旧内容而什么都贴不进去（实测）。after：粘贴完成后、恢复剪贴板前要做的事"""
-    saved = clip_get()
+    """经剪贴板粘贴。上屏的内容留在剪贴板里，不恢复原内容：万一目标程序没接住，用户还能自己再 Ctrl+V 一次。
+    settle：按 Ctrl+V 后等多久再做 after（Word/PowerPoint 转换 MathML 慢，实测）。after：粘贴完成后要做的事"""
     clip_set(s)
     time.sleep(0.03)
     # 用户上屏时往往还按着 Ctrl+Shift（Ctrl+Shift+Enter）或 Alt（Alt+Enter）：直接发 Ctrl+V 会变成
@@ -153,7 +152,6 @@ def paste_text(s, settle=0.3, after=None):
     time.sleep(settle)
     if after:
         after()
-    clip_set(saved)
 
 # ---------- 光标位置 ----------
 class GUITHREADINFO(ctypes.Structure):
@@ -256,9 +254,9 @@ def ime_english():
         user32.SendMessageTimeoutW(ime, 0x283, 0x005, 0, 2, 100, ctypes.byref(o))       # IMC_GETOPENSTATUS
         user32.SendMessageTimeoutW(ime, 0x283, 0x001, 0, 2, 100, ctypes.byref(c))       # IMC_GETCONVERSIONMODE
         return bool(o.value) and bool(c.value & 1)
-    if not native():
-        print("框内已是英文", hex(lang))
-        return
+    # 刚弹框时 WebView2（Chromium 走 TSF）那边的状态可能还没同步过来，读到「已是英文」并不可靠（实测会误判）：
+    # 不管读数如何都先按一次 VK_IME_OFF，已经是英文时这个键不起作用
+    was = native()
     # 1) Windows 自带的「关闭输入法」虚拟键 VK_IME_OFF（微软日文、中文输入法都认）
     if user32.GetForegroundWindow() == box_hwnd:
         send_keys([(0x1A, False), (0x1A, True)])
@@ -267,7 +265,7 @@ def ime_english():
     if native() and lang == 0x0804 and user32.GetForegroundWindow() == box_hwnd:
         send_keys([(0xA0, False), (0xA0, True)])
         time.sleep(0.12)
-    print("框内输入法切英文：", "成功" if not native() else "失败", hex(lang))
+    print("框内输入法切英文：", "成功" if not native() else "失败", hex(lang), "（切之前读数：", "中文" if was else "英文", "）")
 
 class MONITORINFO(ctypes.Structure):
     _fields_ = [("cbSize", wt.DWORD), ("rcMonitor", wt.RECT), ("rcWork", wt.RECT), ("dwFlags", wt.DWORD)]

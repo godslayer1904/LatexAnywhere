@@ -38,7 +38,7 @@ curl -fsSL https://github.com/godslayer1904/LatexAnywhere/releases/latest/downlo
 | `Esc` 或再按 `Alt+L` | 什麼都不插入 | 取消 |
 
 先選取一段文字再按 `Alt+L`，選取的內容會帶進框裡，改完輸出會取代原本的選取範圍。
-進框時輸入法自動切成英文，離開後切回；剪貼簿會恢復原狀。
+進框時輸入法自動切成英文，離開後切回；輸出的內容同時留在剪貼簿裡，萬一沒插入成功，可以自己再貼上一次。
 
 使用說明：系統匣圖示 →「使用說明」，Linux 上也可以按 `Alt+Shift+L`。緊急結束：`Win+Alt+L`（Windows）/ `Super+Alt+L`（Linux）。
 

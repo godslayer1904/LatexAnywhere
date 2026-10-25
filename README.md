@@ -38,7 +38,7 @@ Uninstall: `bash install.sh --uninstall` on Linux, or *Settings → Apps* on Win
 | `Esc` or `Alt+L` again | nothing | cancel |
 
 Select text before pressing `Alt+L` to edit it in the box; inserting replaces the selection.
-The box switches your input method to English and switches it back afterwards. Your clipboard is restored.
+The box switches your input method to English and switches it back afterwards. The inserted text is also left on the clipboard, so you can paste it again yourself if an app missed it.
 
 Help window: tray icon → *Help*, or `Alt+Shift+L` on Linux. Emergency quit: `Win+Alt+L` (Windows) / `Super+Alt+L` (Linux).
 

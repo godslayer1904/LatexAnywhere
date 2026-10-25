@@ -43,5 +43,8 @@ tap(0x0D); time.sleep(1.2)
 shot(os.path.join(HERE, "shot_after.png"))
 got = open(out, encoding="utf-8").read() if os.path.exists(out) else ""
 p.kill()
+clip = subprocess.run(["powershell", "-NoProfile", "-Command", "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-Clipboard -Raw"],
+                      capture_output=True, encoding="utf-8").stdout.strip()
 print("上屏结果：", repr(got))
+print("剪贴板（应留着上屏内容）：", repr(clip))
 print("完成")

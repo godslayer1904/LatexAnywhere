@@ -396,7 +396,7 @@ if cn:
 ibus_engine("xkb:us::eng")
 time.sleep(0.5)
 
-# ---- 上屏后剪贴板原样 ----
+# ---- 上屏的内容留在剪贴板里（四种上屏方式都要）：万一目标没接住，用户还能自己再粘贴 ----
 def get_clip():
     p = os.path.join(D, "clip.txt")
     if os.path.exists(p): os.remove(p)
@@ -404,13 +404,16 @@ def get_clip():
     return wait(lambda: os.path.exists(p) and open(p, encoding="utf-8").read(), 3) or ""
 
 
-set_target("")
-cmd("setclip 原来的剪贴板内容 ABC")
-time.sleep(0.3)
-test_case("剪贴板保护用例", "//1{Tab}2{Tab}", "{Enter}", "\\frac{1}{2}")
-time.sleep(0.8)
-cb = get_clip()
-R(cb == "原来的剪贴板内容 ABC", "上屏后剪贴板原样", f"现在是 [{cb}]")
+for name, keys, commit, want in [("Enter", "//1{Tab}2{Tab}", "{Enter}", "\\frac{1}{2}"), ("Alt+Enter", "x^2{Tab}", "{A-Enter}", "$x^{2}$"),
+                                 ("Ctrl+Enter", "x^2{Tab}+@a", "{C-Enter}", "x²+α"), ("Ctrl+Shift+Enter", "x^2{Tab}", "{C-S-Enter}", None)]:
+    set_target("")
+    cmd("setclip 上屏前的剪贴板")
+    time.sleep(0.3)
+    test_case(f"剪贴板：{name}", keys, commit, want or "__ANY__")
+    time.sleep(0.5)
+    cb = get_clip()
+    ok = cb.startswith("<math") if want is None else cb == want
+    R(ok, f"剪贴板：{name}：剪贴板里留着上屏内容", f"剪贴板 [{cb[:60]}]")
 
 # ---- 连按 Alt+L ----
 set_target("")

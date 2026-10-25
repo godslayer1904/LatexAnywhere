@@ -38,7 +38,7 @@ Desinstalar: no Linux, `bash install.sh --uninstall`; no Windows, *Configuraçõ
 | `Esc` ou `Alt+L` de novo | nada | cancelar |
 
 Selecione um texto antes de pressionar `Alt+L` para editá-lo na caixa; ao inserir, ele substitui a seleção.
-A caixa muda o método de entrada para inglês e depois o restaura. A área de transferência volta ao que era.
+A caixa muda o método de entrada para inglês e depois o restaura. O conteúdo inserido também fica na área de transferência, para você colar de novo se algum app não o recebeu.
 
 Ajuda: ícone da bandeja → *Ajuda*, ou `Alt+Shift+L` no Linux. Saída de emergência: `Win+Alt+L` (Windows) / `Super+Alt+L` (Linux).
 

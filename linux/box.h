@@ -34,16 +34,6 @@ private:
 	void UpdateImCursor();
 	void ShowPreedit();
 	void FinishPaste(std::u16string text, bool restoreIme);
-	// 剪贴板快照：弹框拿到焦点时读下全部格式，上屏粘贴后原样放回（同 Windows 版 ClipboardSnapshot）
-	void SnapshotClipboard();
-	void RestoreClipboard();
-	struct ClipItem { std::string mime; GBytes* data; };
-	std::vector<ClipItem> clip_;
-	unsigned clipGen_ = 0;
-	int clipPending_ = 0;
-	bool clipEmpty_ = false;
-	GObject* curClip_ = nullptr;   // 当前持有的剪贴板内容（LaClip）
-	bool keepFormula_ = false;
 
 	// UTF-16 下标（引擎）与字符下标（GtkTextBuffer）互换
 	int Cp(int u16) const;

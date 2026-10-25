@@ -38,7 +38,7 @@ Desinstalar: en Linux, `bash install.sh --uninstall`; en Windows, *Configuració
 | `Esc` o `Alt+L` de nuevo | nada | cancelar |
 
 Selecciona texto antes de pulsar `Alt+L` para editarlo en el cuadro; al insertar, reemplaza la selección.
-El cuadro cambia el método de entrada a inglés y luego lo restaura. El portapapeles queda como estaba.
+El cuadro cambia el método de entrada a inglés y luego lo restaura. Lo insertado también queda en el portapapeles, así que puedes volver a pegarlo si una aplicación no lo recibió.
 
 Ayuda: icono de la bandeja → *Ayuda*, o `Alt+Shift+L` en Linux. Salida de emergencia: `Win+Alt+L` (Windows) / `Super+Alt+L` (Linux).
 

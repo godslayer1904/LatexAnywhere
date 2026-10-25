@@ -103,96 +103,6 @@ std::string PrepareSvg(const std::string& in, float wPx, float hPx, const std::s
 
 bool Trace() { static bool on = getenv("LA_TRACE") != nullptr; return on; }   // 测试用：记录每个按键
 
-// ---------- 上屏用的剪贴板内容 ----------
-// Wayland 下没有焦点就不能再改剪贴板，粘贴完无法把原内容「放回去」。所以一直由我们持有剪贴板：
-// 粘贴完成前对方要文字就给公式；restored 之后对方再要，一律给弹框前快照的原内容——效果等同于恢复原样。
-struct ClipData {
-	std::string formula;
-	std::vector<std::pair<std::string, GBytes*>> old;
-	bool restored = false;
-	GdkContentFormats* formats = nullptr;
-};
-typedef struct { GdkContentProvider parent; ClipData* d; } LaClip;
-typedef struct { GdkContentProviderClass parent_class; } LaClipClass;
-G_DEFINE_TYPE(LaClip, la_clip, GDK_TYPE_CONTENT_PROVIDER)
-
-const char* const kTextMimes[] = {"text/plain;charset=utf-8", "text/plain", "UTF8_STRING", "STRING", "TEXT"};
-bool IsText(const char* m) {
-	for (const char* t : kTextMimes) if (!strcmp(m, t)) return true;
-	return false;
-}
-void la_clip_init(LaClip* self) { self->d = new ClipData; }
-void la_clip_finalize(GObject* o) {
-	ClipData* d = ((LaClip*)o)->d;
-	for (auto& p : d->old) g_bytes_unref(p.second);
-	if (d->formats) gdk_content_formats_unref(d->formats);
-	delete d;
-	G_OBJECT_CLASS(la_clip_parent_class)->finalize(o);
-}
-GdkContentFormats* la_clip_ref_formats(GdkContentProvider* p) { return gdk_content_formats_ref(((LaClip*)p)->d->formats); }
-// 现在该给出的文字：恢复前是公式；恢复后是原内容里的 UTF-8 文字（没有就是空）
-const std::string* CurrentText(ClipData* d) {
-	if (!d->restored) return &d->formula;
-	static thread_local std::string old;
-	for (auto& o : d->old)
-		if (o.first == "text/plain;charset=utf-8") { gsize n; const char* b = (const char*)g_bytes_get_data(o.second, &n); old.assign(b, n); return &old; }
-	return nullptr;
-}
-gboolean la_clip_get_value(GdkContentProvider* p, GValue* v, GError** e) {
-	const std::string* t = CurrentText(((LaClip*)p)->d);
-	if (G_VALUE_HOLDS(v, G_TYPE_STRING) && t) { g_value_set_string(v, t->c_str()); return TRUE; }
-	g_set_error(e, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED, "no text");
-	return FALSE;
-}
-void la_clip_write_async(GdkContentProvider* p, const char* mime, GOutputStream* stream, int prio, GCancellable* c, GAsyncReadyCallback cb, gpointer data) {
-	GTask* task = g_task_new(p, c, cb, data);
-	ClipData* d = ((LaClip*)p)->d;
-	if (Trace()) Log("跟踪：剪贴板被读取 %s（已恢复=%d）", mime, (int)d->restored);
-	// 原内容的非文字格式（图片等），以及恢复后的一切格式：原样给出快照
-	if (d->restored || !IsText(mime)) {
-		for (auto& o : d->old)
-			if (o.first == mime) {
-				GBytes* bytes = g_bytes_ref(o.second);
-				g_task_set_task_data(task, bytes, (GDestroyNotify)g_bytes_unref);
-				gsize n;
-				const void* buf = g_bytes_get_data(bytes, &n);
-				g_output_stream_write_all_async(stream, buf, n, prio, c, [](GObject* s, GAsyncResult* r, gpointer t) {
-					GError* e = nullptr;
-					if (g_output_stream_write_all_finish(G_OUTPUT_STREAM(s), r, nullptr, &e)) g_task_return_boolean(G_TASK(t), TRUE);
-					else g_task_return_error(G_TASK(t), e);
-					g_object_unref(t);
-				}, task);
-				return;
-			}
-	}
-	// 文字：交给 GTK 自己的序列化（与 gdk_clipboard_set_text 完全相同的路径；自己写字节流 Chrome 读不到，实测）
-	const std::string* t = CurrentText(d);
-	if (!t || !IsText(mime)) {
-		g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED, "no such format");
-		g_object_unref(task);
-		return;
-	}
-	GValue v = G_VALUE_INIT;
-	g_value_init(&v, G_TYPE_STRING);
-	g_value_set_string(&v, t->c_str());
-	gdk_content_serialize_async(stream, mime, &v, prio, c, [](GObject*, GAsyncResult* r, gpointer t) {
-		GError* e = nullptr;
-		if (gdk_content_serialize_finish(r, &e)) g_task_return_boolean(G_TASK(t), TRUE);
-		else g_task_return_error(G_TASK(t), e);
-		g_object_unref(t);
-	}, task);
-	g_value_unset(&v);
-}
-gboolean la_clip_write_finish(GdkContentProvider*, GAsyncResult* r, GError** e) { return g_task_propagate_boolean(G_TASK(r), e); }
-void la_clip_class_init(LaClipClass* k) {
-	G_OBJECT_CLASS(k)->finalize = la_clip_finalize;
-	GdkContentProviderClass* pk = GDK_CONTENT_PROVIDER_CLASS(k);
-	pk->ref_formats = la_clip_ref_formats;
-	pk->get_value = la_clip_get_value;
-	pk->write_mime_type_async = la_clip_write_async;
-	pk->write_mime_type_finish = la_clip_write_finish;
-}
-
 }  // namespace
 
 struct Box::Item {
@@ -285,16 +195,11 @@ bool Box::Create(GtkApplication* app, Engine* engine, VirtualKeyboard* kb) {
 		if (Trace()) Log("跟踪：框 is-active=%d", (int)gtk_window_is_active(GTK_WINDOW(w)));
 		if (!self->visible_ || !gtk_window_is_active(GTK_WINDOW(w))) return;
 		gtk_widget_grab_focus(self->text_);
-		self->SnapshotClipboard();   // Wayland 只有拿着焦点时才能读剪贴板
 		if (self->wantPrimary_) {
 			self->wantPrimary_ = false;
 			self->ReadPrimary();
 		}
 		g_timeout_add(60, [](gpointer) -> gboolean { ImeSetActive(false); return G_SOURCE_REMOVE; }, nullptr);
-	}), this);
-	// 拿到焦点时剪贴板的格式可能还没传过来：内容一到再快照一次
-	g_signal_connect(gtk_widget_get_clipboard(win_), "changed", G_CALLBACK(+[](GdkClipboard* cb, Box* self) {
-		if (self->visible_ && !gdk_clipboard_is_local(cb) && gtk_window_is_active(GTK_WINDOW(self->win_))) self->SnapshotClipboard();
 	}), this);
 	g_signal_connect(win_, "close-request", G_CALLBACK(+[](GtkWindow*, Box* self) -> gboolean { self->Cancel(); return TRUE; }), this);
 
@@ -412,18 +317,9 @@ void Box::Commit(CommitMode mode) {
 	if (text.empty()) { Cancel(); return; }
 	// Wayland 只有拿着焦点时才能占用剪贴板：趁框还在前台放进剪贴板。
 	// 不碰 PRIMARY 选区：GTK 程序一失去 PRIMARY 就取消自己的选中，「选中后替换」会变成插入（实测）
-	LaClip* lc = (LaClip*)g_object_new(la_clip_get_type(), nullptr);
-	lc->d->formula = ToUtf8(text);
-	GdkContentFormatsBuilder* fb = gdk_content_formats_builder_new();
-	gdk_content_formats_builder_add_gtype(fb, G_TYPE_STRING);   // 文字格式由 GTK 按字符串类型展开（同 gdk_clipboard_set_text）
-	if (clipPending_ == 0)
-		for (ClipItem& c : clip_) { lc->d->old.push_back({c.mime, g_bytes_ref(c.data)}); gdk_content_formats_builder_add_mime_type(fb, c.mime.c_str()); }
-	else lc->d->old.clear();
-	lc->d->formats = gdk_content_formats_builder_free_to_formats(fb);
-	if (curClip_) g_object_unref(curClip_);
-	curClip_ = G_OBJECT(lc);
-	keepFormula_ = clipPending_ > 0;   // 快照没读完：只好把公式留在剪贴板里
-	gdk_clipboard_set_content(gtk_widget_get_clipboard(win_), GDK_CONTENT_PROVIDER(lc));
+	// 上屏的内容留在剪贴板里，不恢复原来的剪贴板：万一目标程序没接住粘贴，用户还能自己再粘贴一次（用户 10-25 定）。
+	// 用 GTK 自己的字符串写法：自定义内容提供者 Chrome 不来读（实测）
+	gdk_clipboard_set_text(gtk_widget_get_clipboard(win_), ToUtf8(text).c_str());
 	// 用户往往还按着 Ctrl / Alt（Ctrl+Enter、Alt+Enter）：这时发 Shift+Insert 会变成别的组合键。等他松手再收框、粘贴（最多 1.5 秒）
 	struct Wait { Box* self; std::u16string text; double t0; bool ime; };
 	auto* w = new Wait{this, text, NowMs(), prevIme_};
@@ -455,57 +351,10 @@ void Box::FinishPaste(std::u16string text, bool restoreIme) {
 		if (j->self->targetTerminal_) j->self->kb_->Tap({KEY_LEFTCTRL, KEY_LEFTSHIFT, KEY_INSERT});
 		else j->self->kb_->Tap({KEY_LEFTSHIFT, KEY_INSERT});
 		if (j->ime) g_timeout_add(80, [](gpointer) -> gboolean { ImeSetActive(true); return G_SOURCE_REMOVE; }, nullptr);
-		// 对方读剪贴板是异步的：放回太早它会读到旧内容（Windows 版同样等 300ms）
-		g_timeout_add(400, [](gpointer p) -> gboolean { static_cast<Box*>(p)->RestoreClipboard(); return G_SOURCE_REMOVE; }, j->self);
 		delete j;
 		return G_SOURCE_REMOVE;
 	}, j);
 	(void)text;
-}
-
-void Box::SnapshotClipboard() {
-	for (ClipItem& c : clip_) g_bytes_unref(c.data);
-	clip_.clear();
-	clipPending_ = 0;
-	unsigned gen = ++clipGen_;
-	GdkClipboard* cb = gtk_widget_get_clipboard(win_);
-	GdkContentFormats* f = gdk_clipboard_get_formats(cb);
-	gsize n = 0;
-	const char* const* mimes = f ? gdk_content_formats_get_mime_types(f, &n) : nullptr;
-	clipEmpty_ = n == 0;
-	if (Trace()) Log("跟踪：剪贴板快照 %zu 种格式%s", (size_t)n, gdk_clipboard_is_local(cb) ? "（自己的）" : "");
-	for (gsize i = 0; i < n && i < 24; i++) {
-		struct Req { Box* self; unsigned gen; std::string mime; };
-		auto* r = new Req{this, gen, mimes[i]};
-		const char* one[] = {mimes[i], nullptr};
-		clipPending_++;
-		gdk_clipboard_read_async(cb, one, G_PRIORITY_DEFAULT, nullptr, [](GObject* src, GAsyncResult* res, gpointer p) {
-			auto* r = static_cast<Req*>(p);
-			GInputStream* in = gdk_clipboard_read_finish(GDK_CLIPBOARD(src), res, nullptr, nullptr);
-			if (!in || r->gen != r->self->clipGen_) { if (in) g_object_unref(in); if (r->gen == r->self->clipGen_) r->self->clipPending_--; delete r; return; }
-			GOutputStream* out = g_memory_output_stream_new_resizable();
-			g_output_stream_splice_async(out, in, (GOutputStreamSpliceFlags)(G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET),
-				G_PRIORITY_DEFAULT, nullptr, [](GObject* o, GAsyncResult* res, gpointer p) {
-					auto* r = static_cast<Req*>(p);
-					gssize got = g_output_stream_splice_finish(G_OUTPUT_STREAM(o), res, nullptr);
-					if (r->gen == r->self->clipGen_) {
-						r->self->clipPending_--;
-						if (got >= 0 && got < 32 * 1024 * 1024)
-							r->self->clip_.push_back({r->mime, g_memory_output_stream_steal_as_bytes(G_MEMORY_OUTPUT_STREAM(o))});
-					}
-					g_object_unref(o);
-					delete r;
-				}, r);
-			g_object_unref(in);
-		}, r);
-	}
-}
-
-void Box::RestoreClipboard() {
-	if (!curClip_) return;
-	if (keepFormula_) { Log("剪贴板快照没读完，公式留在剪贴板里"); return; }
-	((LaClip*)curClip_)->d->restored = true;
-	if (Trace()) Log("跟踪：剪贴板恢复原样（%zu 种格式）", ((LaClip*)curClip_)->d->old.size());
 }
 
 void Box::Cancel() {

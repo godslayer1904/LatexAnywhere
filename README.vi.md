@@ -38,7 +38,7 @@ Gỡ cài đặt: trên Linux chạy `bash install.sh --uninstall`; trên Window
 | `Esc` hoặc nhấn lại `Alt+L` | không chèn gì | hủy |
 
 Bôi đen văn bản trước khi nhấn `Alt+L` để sửa nó trong ô; khi chèn, phần bôi đen sẽ được thay thế.
-Ô công thức tự chuyển bộ gõ sang tiếng Anh và chuyển lại sau đó. Clipboard được khôi phục như cũ.
+Ô công thức tự chuyển bộ gõ sang tiếng Anh và chuyển lại sau đó. Nội dung đã chèn cũng được giữ lại trong clipboard, nên nếu ứng dụng chưa nhận được, bạn có thể tự dán lại.
 
 Hướng dẫn: biểu tượng ở khay → *Hướng dẫn*, trên Linux còn có thể nhấn `Alt+Shift+L`. Thoát khẩn cấp: `Win+Alt+L` (Windows) / `Super+Alt+L` (Linux).
 

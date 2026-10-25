@@ -232,18 +232,16 @@ std::wstring GrabSelection() {
 }
 
 // ---------- 粘贴上屏 ----------
+// 上屏的内容留在剪贴板里，不恢复原来的剪贴板：万一目标程序没接住粘贴，用户还能自己再 Ctrl+V 一次（用户 10-25 定）
 void PasteText(const std::wstring& s, int settleMs, const std::function<void()>& after) {
-	ClipboardSnapshot saved;
-	saved.Save();
 	if (!ClipboardSetText(s)) { Log("粘贴失败：剪贴板打不开"); return; }
 	Sleep(30);
 	// 用户上屏时往往还按着 Ctrl+Shift 或 Alt：直接发 Ctrl+V 会变成 Ctrl+Shift+V（Office 的粘贴格式）或 Ctrl+Alt+V。先补屏蔽键和 Shift/Alt 抬起
 	SendKeys({{0xFF, false}, {0xFF, true},
 		{VK_SHIFT, true}, {VK_LSHIFT, true}, {VK_RSHIFT, true}, {VK_MENU, true}, {VK_LMENU, true}, {VK_RMENU, true},
 		{VK_CONTROL, false}, {'V', false}, {'V', true}, {VK_CONTROL, true}});
-	Sleep(settleMs);   // Word/PowerPoint 转换 MathML 慢：恢复太早它会读到被换回去的旧内容（实测）
+	Sleep(settleMs);   // Word/PowerPoint 转换 MathML 慢：等它粘贴完再做后续按键（实测）
 	if (after) after();
-	saved.Restore();
 }
 
 // ---------- 输入法 ----------
@@ -265,12 +263,14 @@ void ImeSwitchToEnglish(HWND boxWnd, HWND editWnd) {
 	HWND ime = ImmGetDefaultIMEWnd(editWnd);
 	if (!ime) return;
 	LANGID lang = LOWORD((UINT_PTR)GetKeyboardLayout(GetWindowThreadProcessId(editWnd, nullptr)));
-	if (!ImeIsNative(ime)) { Log("框内已是英文 0x%04x", lang); return; }
+	// 刚弹框时读到的状态不可靠：微软拼音实际是中文却读成「已是英文」（家里真机实测），所以不管读数如何都先按一次
+	// VK_IME_OFF——已经是英文时这个键不起作用
+	bool was = ImeIsNative(ime);
 	// 1) Windows 自带的「关闭输入法」键 VK_IME_OFF（微软日文、中文输入法都认）；只在前台确实是公式框时按
 	if (GetForegroundWindow() == boxWnd) { SendKeys({{VK_IME_OFF, false}, {VK_IME_OFF, true}}); Sleep(120); }
 	// 2) 还是中文：补一次 Shift 单击（微软拼音的中英切换键）
 	if (ImeIsNative(ime) && lang == 0x0804 && GetForegroundWindow() == boxWnd) { SendKeys({{VK_LSHIFT, false}, {VK_LSHIFT, true}}); Sleep(120); }
-	Log("框内输入法切英文：%s 0x%04x", ImeIsNative(ime) ? "失败" : "成功", lang);
+	Log("框内输入法切英文：%s 0x%04x（切之前读数：%s）", ImeIsNative(ime) ? "失败" : "成功", lang, was ? "中文" : "英文");
 }
 
 void ImeRestoreNative(HWND prev) {

@@ -7,7 +7,7 @@ Windows 版能做的事，Wayland 大多禁止程序直接做（读别的窗口�
 | Alt+L 唤起 | RegisterHotKey | GNOME 自定义快捷键调用 `latexanywhere --toggle`，经 D-Bus 交给正在运行的实例 | GlobalShortcuts 门户在 GNOME 48+ 会反复弹设置窗；自定义快捷键稳定、无弹窗，并且会带激活令牌，框能拿到焦点 |
 | 取选区 | UI Automation，读不到再 Ctrl+C | 焦点程序经 AT-SPI 可见（GTK、终端等）就以它为准，它说没选中就是没选中；浏览器等默认不暴露的程序改读主选区（PRIMARY），与上次带进来的相同就当旧内容不用 | Chrome、Firefox 取消选中后主选区也不清空（实测）；带进来的文字在框里是选中状态，万一是旧的第一下按键就覆盖。不注入 Ctrl+C：终端里是中断进程 |
 | 上屏 | 剪贴板 + Ctrl+V | 剪贴板 + 虚拟键盘发 Shift+Insert；目标是终端（AT-SPI 角色）时发 Ctrl+Shift+Insert（/dev/uinput；没有权限时用 GNOME 的 Mutter 远程桌面接口） | 与键盘布局无关。终端（VTE）的 Shift+Insert 粘贴的是主选区，Ctrl+Shift+Insert 才是剪贴板 |
-| 剪贴板恢复原样 | 粘贴后写回快照 | 一直由我们持有剪贴板：粘贴完成前给公式，之后给弹框前快照的原内容；文字走 GTK 自己的字符串序列化 | Wayland 失去焦点后不能再改剪贴板，GNOME 也没有 data-control 协议。自己写字节流的话 Chrome 不来读（实测）。Chrome 会缓存读到的内容，在 Chrome 里粘贴仍是公式 |
+| 上屏内容留在剪贴板 | 写剪贴板后 Ctrl+V，不恢复原内容 | 同左：用 GTK 自己的字符串写法写剪贴板，再发粘贴键 | 万一目标程序没接住，用户可以自己再粘贴一次（用户 10-25 定）。自定义剪贴板内容提供者 Chrome 不来读（实测），所以用 GTK 标准写法 |
 | 不碰 PRIMARY | — | 只写剪贴板 | GTK 程序失去 PRIMARY 会取消自己的选中，「选中后替换」会变成插入（实测） |
 | 进框切英文、离开切回 | IMM 只改公式框自己的 | fcitx5：控制接口开关；IBus（GNOME 默认）：记下全局引擎，切到 `xkb:us::eng`，离开时切回；中途崩溃重启后自动切回 | IBus 在 GNOME 下没有读写「中/英」状态的公开接口，切引擎是编辑器自动切换插件的通行做法，也是 GNOME 切到拉丁键盘时自己的做法 |
 | 托盘 | Shell_NotifyIcon | 自己实现 StatusNotifierItem + com.canonical.dbusmenu | libayatana-appindicator-glib 导出 org.gtk.Menus，Ubuntu 顶栏扩展不认 |

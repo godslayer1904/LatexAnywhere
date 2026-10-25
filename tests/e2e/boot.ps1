@@ -37,7 +37,7 @@ if ($setup) {
     $p.WaitForExit(120000) | Out-Null
     Start-Sleep 3
     $left = @(Get-Process LatexAnywhere -ErrorAction SilentlyContinue).Count
-    L ("卸载退出码 $($p.ExitCode)；残留进程 $left；程序还在：" + (Test-Path $exe) + "；开机自启项还在：" + [bool](Get-ItemProperty $runKey -Name LatexAnywhere -ErrorAction SilentlyContinue) + "；数据目录还在：" + (Test-Path "$env:LOCALAPPDATA\LatexAnywhere"))
+    L ("卸载退出码 $($p.ExitCode)；残留进程 $left；程序还在：" + (Test-Path $exe) + "；开机自启项还在：" + [bool](Get-ItemProperty $runKey -Name LatexAnywhere -ErrorAction SilentlyContinue) + "；数据目录还在：" + (Test-Path "$env:LOCALAPPDATA\LatexAnywhere") + "；设置注册表还在：" + (Test-Path "HKCU:\Software\LatexAnywhere"))
 }
 L "结束"
 New-Item "$R\DONE" -ItemType File -Force | Out-Null
