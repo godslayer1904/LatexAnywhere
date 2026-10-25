@@ -3,6 +3,7 @@
 #include <gio/gio.h>
 #include <librsvg/rsvg.h>
 #include <unistd.h>
+#include <cstdint>
 
 #include "util.h"
 
