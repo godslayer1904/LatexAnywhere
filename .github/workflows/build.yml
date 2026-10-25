@@ -1,0 +1,83 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build JS bundles
+        shell: bash
+        run: |
+          cd core/js && npm ci --ignore-scripts && npx lezer-generator latex-suite/parser/mathjax/latex.grammar -o latex-suite/parser/mathjax/latex-parser && node build.mjs --minify
+          cd ../mathjax && npm ci --ignore-scripts && npx esbuild tex2svg.js --bundle --minify --format=iife --target=es2022 --platform=neutral --main-fields=module,main --outfile=dist/math.js
+      - name: Differential test (Node, against original Latex Suite results)
+        shell: bash
+        run: cd tests/diff && node --no-warnings run_node.mjs ../golden/default.jsonl
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
+      - name: Build (CMake + Ninja)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: Differential test (native QuickJS engine)
+        run: build\la_difftest.exe build\bytecode\engine.qbc tests\golden\default.jsonl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LatexAnywhere-${{ matrix.arch }}
+          path: build/LatexAnywhere.exe
+
+  installer:
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: LatexAnywhere-x64
+          path: dist/x64
+      - uses: actions/download-artifact@v4
+        with:
+          name: LatexAnywhere-arm64
+          path: dist/arm64
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $v = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}".TrimStart("v") } else { "0.9.0-dev.${{ github.run_number }}" }
+          $env:LA_VERSION = $v
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\LatexAnywhere.iss
+          Get-ChildItem dist\*.exe | ForEach-Object { (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() + "  " + $_.Name } | Out-File dist\SHA256SUMS.txt -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LatexAnywhere-Setup
+          path: |
+            dist/LatexAnywhere-Setup-*.exe
+            dist/SHA256SUMS.txt
+      - name: Release (tags only)
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            dist/LatexAnywhere-Setup-*.exe
+            dist/SHA256SUMS.txt
