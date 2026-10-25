@@ -2,6 +2,7 @@
 
 #include <imm.h>
 #include <oleacc.h>
+#include <uiautomation.h>
 #include <psapi.h>
 #include <algorithm>
 #include <thread>
@@ -143,7 +144,71 @@ POINT CaretScreenPos() {
 }
 
 // ---------- 取选区 ----------
+static IUIAutomation* g_uia = nullptr;
+
+void UiaInit() {
+	if (g_uia) return;
+	if (FAILED(CoCreateInstance(CLSID_CUIAutomation8, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_uia))) &&
+		FAILED(CoCreateInstance(CLSID_CUIAutomation, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_uia)))) {
+		Log("UI Automation 不可用，取选区只用复制方式");
+		return;
+	}
+	IUIAutomation2* u2 = nullptr;
+	if (SUCCEEDED(g_uia->QueryInterface(IID_PPV_ARGS(&u2)))) {   // 目标程序卡住时不被拖住
+		u2->put_ConnectionTimeout(300);
+		u2->put_TransactionTimeout(300);
+		u2->Release();
+	}
+}
+
+// 返回 1：读到选区（可能为空）；0：该控件不支持，需要退回复制方式
+static int UiaSelection(std::wstring* out) {
+	if (!g_uia) return 0;
+	IUIAutomationElement* el = nullptr;
+	if (FAILED(g_uia->GetFocusedElement(&el)) || !el) return 0;
+	int result = 0;
+	IUIAutomationTextPattern* tp = nullptr;
+	if (SUCCEEDED(el->GetCurrentPatternAs(UIA_TextPatternId, IID_PPV_ARGS(&tp))) && tp) {
+		SupportedTextSelection sts = SupportedTextSelection_None;
+		IUIAutomationTextRangeArray* arr = nullptr;
+		if (SUCCEEDED(tp->get_SupportedTextSelection(&sts)) && sts != SupportedTextSelection_None &&
+			SUCCEEDED(tp->GetSelection(&arr)) && arr) {
+			int n = 0;
+			arr->get_Length(&n);
+			result = 1;
+			for (int i = 0; i < n; i++) {
+				IUIAutomationTextRange* r = nullptr;
+				if (FAILED(arr->GetElement(i, &r)) || !r) continue;
+				BSTR b = nullptr;
+				if (SUCCEEDED(r->GetText(8000, &b)) && b) { out->append(b, SysStringLen(b)); SysFreeString(b); }
+				r->Release();
+			}
+			arr->Release();
+		}
+		tp->Release();
+	}
+	el->Release();
+	return result;
+}
+
+static std::wstring NormalizeSelection(const std::wstring& got) {
+	if (got.empty() || got.back() == L'\n' || got.back() == L'\r' || got.size() > 4000) return L"";   // 没选中时有的编辑器会给整行
+	std::wstring out;
+	out.reserve(got.size());
+	for (size_t i = 0; i < got.size(); i++) {
+		if (got[i] == L'\r') { if (i + 1 < got.size() && got[i + 1] == L'\n') continue; out.push_back(L'\n'); continue; }
+		out.push_back(got[i]);
+	}
+	return out;
+}
+
 std::wstring GrabSelection() {
+	std::wstring uia;
+	if (UiaSelection(&uia)) {
+		// 用户还按着 Alt（Alt+L）：补屏蔽键和 Alt 抬起，防止目标程序激活菜单栏（与复制方式相同的处理）
+		SendKeys({{0xFF, false}, {0xFF, true}, {VK_MENU, true}, {VK_LMENU, true}, {VK_RMENU, true}});
+		return NormalizeSelection(uia);
+	}
 	ClipboardSnapshot saved;
 	saved.Save();
 	ClipboardSetText(L"");

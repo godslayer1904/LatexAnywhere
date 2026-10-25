@@ -25,7 +25,8 @@ bool ClipboardSetText(const std::wstring& s);   // s 为空：清空剪贴板
 std::wstring ClipboardGetText(bool* ok);
 
 POINT CaretScreenPos();                      // 光标底部（屏幕物理像素）；拿不到就用鼠标位置
-std::wstring GrabSelection();                // Ctrl+C 取选区，之后恢复剪贴板
+std::wstring GrabSelection();                // 取选区：先用 UI Automation 直接读，读不到再 Ctrl+C（之后恢复剪贴板）
+void UiaInit();                              // 在界面线程初始化一次（COM 已初始化）
 void PasteText(const std::wstring& s, int settleMs, const std::function<void()>& after);
 
 // 输入法

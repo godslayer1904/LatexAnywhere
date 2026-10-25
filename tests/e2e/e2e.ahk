@@ -132,6 +132,65 @@ WaitBox(false)
 Sleep 700
 R(StrReplace(GEd.Value, "`r", "") == "a+b+c", "选中带入并替换", "得到 [" GEd.Value "]")
 
+; ---------------- 浏览器目标（Edge，Chromium：MSAA 光标、UI Automation 取选区、粘贴） ----------------
+EdgeVal() {
+	t := WinGetTitle("ahk_exe msedge.exe")
+	p := InStr(t, "VAL:")
+	if !p
+		return "<无标题>"
+	v := SubStr(t, p + 4)
+	v := RegExReplace(v, " [-—] .*$", "")
+	return StrReplace(v, "\n", "`n")
+}
+Run '"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --no-first-run --no-default-browser-check --user-data-dir=C:\EdgeProfile --app=file:///C:/E2E/target.html'
+if !WinWait("ahk_exe msedge.exe", , 20) {
+	R(false, "Edge 启动", "20 秒内没出现窗口")
+} else {
+	Sleep 4000
+	WinActivate "ahk_exe msedge.exe"
+	Sleep 800
+	EdgeCase(name, keys, commit, expected) {
+		WinActivate "ahk_exe msedge.exe"
+		Sleep 200
+		Send "{F9}"
+		Sleep 300
+		Send "!l"
+		t := WaitBox(true)
+		if (t < 0) {
+			R(false, name, "公式框没有弹出")
+			return
+		}
+		Sleep 150
+		TypeKeys(keys)
+		Sleep 250
+		Send commit
+		WaitBox(false)
+		Sleep 900
+		got := EdgeVal()
+		R(got == expected, name, "期望 [" expected "] 得到 [" got "]（弹框 " t " ms）")
+	}
+	EdgeCase("Edge：x^2 上屏", "x^2{Tab}", "{Enter}", "x^{2}")
+	EdgeCase("Edge：分式 + Unicode", "//1{Tab}2{Tab}", "^{Enter}", "1/2")
+	; 选中再唤起（UI Automation 读选区）
+	WinActivate "ahk_exe msedge.exe"
+	Send "{F9}"
+	Sleep 200
+	SendText "a+b"
+	Sleep 300
+	Send "^a"
+	Sleep 200
+	Send "!l"
+	WaitBox(true)
+	Sleep 200
+	Shot("edge_selection")
+	TypeKeys("{End}{Left}+c")
+	Send "{Enter}"
+	WaitBox(false)
+	Sleep 900
+	R(EdgeVal() == "a+b+c", "Edge：选中带入并替换", "得到 [" EdgeVal() "]")
+	WinClose "ahk_exe msedge.exe"
+}
+
 ; 剪贴板保护
 A_Clipboard := "原来的剪贴板内容"
 Sleep 200

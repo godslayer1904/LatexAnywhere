@@ -214,6 +214,7 @@ int RunWorker() {
 	RegisterClassExW(&wc);
 	g_msg = CreateWindowExW(0, wc.lpszClassName, L"LatexAnywhereMsg", 0, 0, 0, 0, 0, nullptr, nullptr, g_inst, nullptr);
 
+	UiaInit();
 	g_box = new Box;
 	if (!g_box->Create(g_inst, g_eng)) { Log("公式框创建失败"); return 2; }
 	g_box->SetDark(SystemDark());
