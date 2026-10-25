@@ -114,7 +114,7 @@ void ShowHelp(GtkApplication* app, bool dark, bool welcome) {
 	add(Label(esc(u(L.subtitle)), "la-sub"));
 	add(Label(Markup(u(L.helpKeyLinux), dark), "la-tip"));   // 放在最前面：每次看说明都知道怎么再调出来
 	add(Label(esc(u(L.hBasic)), "la-h"));
-	for (int i = 0; i < 4; i++) add(Label(std::to_string(i + 1) + ".  " + Markup(u(L.basic[i]), dark)));
+	for (int i = 0; i < 4; i++) add(Label(std::to_string(i + 1) + ".  " + Markup(u(i == 0 ? L.basic0Linux : L.basic[i]), dark)));
 	add(Label(Markup(u(L.tipSelection), dark), "la-tip"));
 
 	add(Label(esc(u(L.hInsert)), "la-h"));
@@ -137,7 +137,8 @@ void ShowHelp(GtkApplication* app, bool dark, bool welcome) {
 	add(grid);
 
 	add(Label(esc(u(L.hIme)), "la-h"));
-	for (const wchar_t* s : L.ime) add(Label("•  " + Markup(u(s), dark)));
+	add(Label("•  " + Markup(u(L.imeLinux), dark)));
+	add(Label("•  " + Markup(u(L.ime[1]), dark)));
 	add(Label(esc(u(L.hBox)), "la-h"));
 	add(Label("•  " + Markup(u(L.box[0]), dark)));
 	add(Label("•  " + Markup(u(L.box[1]), dark)));

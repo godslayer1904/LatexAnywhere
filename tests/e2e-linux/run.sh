@@ -17,6 +17,15 @@ if [ -z "${LA_E2E_INNER:-}" ]; then
 fi
 export XDG_CONFIG_HOME=$LA_E2E/config XDG_STATE_HOME=$LA_E2E/state XDG_DATA_HOME=$LA_E2E/data
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_STATE_HOME" "$XDG_DATA_HOME"
+# 与 install.sh 相同的 .desktop（文件名 = 程序标识），在 GNOME 启动前放好，它启动时扫描
+mkdir -p "$XDG_DATA_HOME/applications"
+printf '[Desktop Entry]
+Type=Application
+Name=LatexAnywhere
+Exec=%s
+Icon=latexanywhere
+StartupWMClass=io.github.godslayer1904.LatexAnywhere
+' "$EXE" >"$XDG_DATA_HOME/applications/io.github.godslayer1904.LatexAnywhere.desktop"
 # 与 Windows 测试相同：放入用户的 Latex Suite 设置（个人文件，不进仓库；没有就用默认设置）
 [ -f "$HOME/.la-e2e-settings.json" ] && mkdir -p "$XDG_CONFIG_HOME/LatexAnywhere" && cp "$HOME/.la-e2e-settings.json" "$XDG_CONFIG_HOME/LatexAnywhere/settings.json"
 export GSETTINGS_BACKEND=memory          # 不改真实的 GNOME 设置（快捷键等）

@@ -286,6 +286,10 @@ bool Box::Create(GtkApplication* app, Engine* engine, VirtualKeyboard* kb) {
 		if (!self->visible_ || !gtk_window_is_active(GTK_WINDOW(w))) return;
 		gtk_widget_grab_focus(self->text_);
 		self->SnapshotClipboard();   // Wayland 只有拿着焦点时才能读剪贴板
+		if (self->wantPrimary_) {
+			self->wantPrimary_ = false;
+			self->ReadPrimary();
+		}
 		g_timeout_add(60, [](gpointer) -> gboolean { ImeSetActive(false); return G_SOURCE_REMOVE; }, nullptr);
 	}), this);
 	// 拿到焦点时剪贴板的格式可能还没传过来：内容一到再快照一次
@@ -326,8 +330,10 @@ void Box::Toggle() {
 void Box::Open() {
 	double t0 = NowMs();
 	ImeQuery([this](bool on) { prevIme_ = on; });   // 趁原程序还有焦点时问
-	bool atspi = false;
-	std::u16string sel = SelectionGet(&atspi);
+	bool atspi = false, known = false;
+	std::u16string sel = SelectionGet(&atspi, &known);
+	targetTerminal_ = TargetIsTerminal();
+	wantPrimary_ = !known;   // 浏览器等不经无障碍接口暴露的程序：框拿到焦点后改读主选区
 	double tSel = NowMs() - t0;
 	// 一律放进行内公式里编辑（上屏时去掉外层 $）：Latex Suite 只在公式里生效
 	EditResult r = eng_->Reset(u"$" + sel + u"$", 1, 1 + (int)sel.size());
@@ -343,7 +349,32 @@ void Box::Open() {
 	Relayout();
 	gtk_widget_grab_focus(text_);
 	gtk_window_present(GTK_WINDOW(win_));
-	Log("弹框：选区 %.0fms（%s，长度 %zu），显示 %.0fms", tSel, atspi ? "AT-SPI" : "无", sel.size(), NowMs() - t0);
+	Log("弹框：选区 %.0fms（%s，长度 %zu），显示 %.0fms", tSel, atspi ? "AT-SPI" : known ? "无" : "待读主选区", sel.size(), NowMs() - t0);
+}
+
+// 主选区（Linux 上「选中即复制」的那份）：浏览器取消选中后它也不清空（实测 Chrome、Firefox），
+// 所以和上一次带进来的内容相同就当作旧内容不用；带进来的文字在框里是选中状态，万一是旧的，第一下按键就会覆盖
+void Box::ReadPrimary() {
+	gdk_clipboard_read_text_async(gtk_widget_get_primary_clipboard(win_), nullptr, [](GObject* src, GAsyncResult* r, gpointer p) {
+		Box* self = static_cast<Box*>(p);
+		char* t = gdk_clipboard_read_text_finish(GDK_CLIPBOARD(src), r, nullptr);
+		std::u16string sel = t ? FromUtf8(t) : u"";
+		g_free(t);
+		sel.erase(std::remove(sel.begin(), sel.end(), u'\r'), sel.end());
+		const char* why = nullptr;
+		if (!self->visible_ || self->mirror_ != u"$$") why = "框里已经有内容";
+		else if (sel.empty()) why = "空";
+		else if (sel.size() > 4000 || sel.back() == u'\n') why = "过长或是整行";   // 同 Windows 版：没选中时有的编辑器复制整行
+		else if (sel == self->lastPrimary_) why = "与上次相同，视为旧内容";
+		if (why) { Log("主选区不带入（%s）", why); return; }
+		self->lastPrimary_ = sel;
+		EditResult res = self->eng_->Reset(u"$" + sel + u"$", 1, 1 + (int)sel.size());
+		if (!res.ok) return;
+		self->Apply(res);
+		self->UpdatePreview();
+		self->Relayout();
+		Log("选区：主选区，长度 %zu", sel.size());
+	}, this);
 }
 
 void Box::Hide() {
@@ -414,10 +445,15 @@ void Box::FinishPaste(std::u16string text, bool restoreIme) {
 	if (!kb_->Ok()) { Log("没有虚拟键盘（%s）：公式已放进剪贴板，需要手动 Ctrl+V", kb_->error.c_str()); return; }
 	struct Job { Box* self; bool ime; };
 	auto* j = new Job{this, restoreIme};
+	if (targetTerminal_) Log("目标是终端：用 Ctrl+Shift+Insert 粘贴");
 	// 等焦点回到原程序再粘贴（Wayland 拿不到「焦点已切换」的通知，实测 150ms 足够）
-	g_timeout_add(150, [](gpointer p) -> gboolean {
+	static int delay = getenv("LA_PASTE_DELAY") ? atoi(getenv("LA_PASTE_DELAY")) : 150;   // 测试用：可调
+	g_timeout_add(delay, [](gpointer p) -> gboolean {
 		auto* j = static_cast<Job*>(p);
-		j->self->kb_->Tap({KEY_LEFTSHIFT, KEY_INSERT});   // 与键盘布局无关；GTK、Qt、浏览器、LibreOffice、终端都认
+		// 与键盘布局无关。GTK、Qt、浏览器、LibreOffice 的 Shift+Insert 粘贴剪贴板；
+		// 终端（VTE 等）的 Shift+Insert 粘贴的是主选区，Ctrl+Shift+Insert 才是剪贴板
+		if (j->self->targetTerminal_) j->self->kb_->Tap({KEY_LEFTCTRL, KEY_LEFTSHIFT, KEY_INSERT});
+		else j->self->kb_->Tap({KEY_LEFTSHIFT, KEY_INSERT});
 		if (j->ime) g_timeout_add(80, [](gpointer) -> gboolean { ImeSetActive(true); return G_SOURCE_REMOVE; }, nullptr);
 		// 对方读剪贴板是异步的：放回太早它会读到旧内容（Windows 版同样等 300ms）
 		g_timeout_add(400, [](gpointer p) -> gboolean { static_cast<Box*>(p)->RestoreClipboard(); return G_SOURCE_REMOVE; }, j->self);

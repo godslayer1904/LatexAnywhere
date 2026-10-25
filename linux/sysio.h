@@ -26,7 +26,9 @@ private:
 
 // 取选区：AT-SPI（无障碍接口，相当于 Windows 的 UI Automation）。拿不到就返回空，绝不读可能过期的 PRIMARY
 void SelectionInit();
-std::u16string SelectionGet(bool* fromAtspi);
+// known：焦点所在程序是否经 AT-SPI 可见（浏览器默认不暴露，这时由调用方改读主选区）
+std::u16string SelectionGet(bool* fromAtspi, bool* known = nullptr);
+bool TargetIsTerminal();   // 当前焦点是终端（AT-SPI 角色）：终端的 Shift+Insert 粘贴的是主选区，要改发 Ctrl+Shift+Insert
 
 // 输入法（fcitx5 或 IBus）：进框前问一次，框里切英文，离开时切回
 void ImeQuery(std::function<void(bool active)> done);   // 中文等本地输入是否开着

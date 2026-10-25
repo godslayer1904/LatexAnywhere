@@ -485,6 +485,24 @@ subprocess.run([EXE, "--quit"], env=env, timeout=10)
 wait(lambda: not pids(), 6)
 start_app()
 
+# ---- GNOME 认出程序（Dock、任务切换显示正确图标）：装好 .desktop 后，运行中程序列表里应以它为名 ----
+apps_dir = os.path.join(os.environ["XDG_DATA_HOME"], "applications")
+os.makedirs(apps_dir, exist_ok=True)
+with open(os.path.join(apps_dir, "io.github.godslayer1904.LatexAnywhere.desktop"), "w") as f:   # 与 install.sh 写的相同
+    f.write("[Desktop Entry]\nType=Application\nName=LatexAnywhere\n"
+            f"Exec={EXE}\nIcon=latexanywhere\nStartupWMClass=io.github.godslayer1904.LatexAnywhere\n")
+time.sleep(2)
+cmd("help")
+wait(lambda: HELP in app_windows(), 5)
+time.sleep(0.5)
+running = list(bus.call_sync("org.gnome.Shell.Introspect", "/org/gnome/Shell/Introspect", "org.gnome.Shell.Introspect", "GetRunningApplications",
+                             None, None, 0, 3000).unpack()[0].keys())
+R("io.github.godslayer1904.LatexAnywhere.desktop" in running, "GNOME 认出程序（图标正确）", str(running))
+type_keys("{Esc}")
+wait(lambda: HELP not in app_windows(), 3)
+cmd("present")
+time.sleep(0.3)
+
 # ---- 托盘「退出」、紧急退出 ----
 it = menu_items()
 if it: click(it[-1][0])

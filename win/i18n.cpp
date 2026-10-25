@@ -46,6 +46,7 @@ const Strings kZhCN = {
 	L"语言", L"跟随系统", L"简体中文",
 	L"登录时自动启动", L"程序在屏幕顶栏右侧运行（紫色 ∑ 图标），点它可以开关「%1」，或者「%2」。",
 	L"随时按 ‹Alt›+‹Shift›+‹L› 再打开这份说明。",
+	L"在任意输入框里（浏览器、编辑器、终端……）按 ‹Alt›+‹L›，弹出公式框。", L"进框时自动切成英文，打公式不用手动切输入法；框里要打中文时，用平时切换输入法的键（如 ‹Super›+‹Space›）切回。",
 };
 
 const Strings kZhTW = {
@@ -80,6 +81,7 @@ const Strings kZhTW = {
 	L"語言", L"跟隨系統", L"繁體中文",
 	L"登入時自動啟動", L"程式在螢幕頂欄右側執行（紫色 ∑ 圖示），點它可以開關「%1」或「%2」。",
 	L"隨時按 ‹Alt›+‹Shift›+‹L› 再次開啟這份說明。",
+	L"在任何輸入框裡（瀏覽器、編輯器、終端機……）按 ‹Alt›+‹L›，彈出公式框。", L"進框時自動切成英文，打公式不用手動切換輸入法；框裡要打中文時，用平常切換輸入法的按鍵（如 ‹Super›+‹Space›）切回。",
 };
 
 const Strings kJa = {
@@ -114,6 +116,7 @@ const Strings kJa = {
 	L"言語", L"システムに合わせる", L"日本語",
 	L"ログイン時に自動起動", L"画面上部のトップバー右側で動いています（紫の ∑ アイコン）。クリックすると「%1」の切り替えや「%2」ができます。",
 	L"‹Alt›+‹Shift›+‹L› でいつでもこの説明を開けます。",
+	L"どの入力欄でも（ブラウザ、エディタ、ターミナル…）‹Alt›+‹L› で数式ボックスが開きます。", L"ボックスを開くと自動で英字入力に切り替わります。日本語を入力したいときは、普段の切り替えキー（例：‹Super›+‹Space›）で戻してください。",
 };
 
 const Strings kEn = {
@@ -148,6 +151,7 @@ const Strings kEn = {
 	L"Language", L"Follow system", L"English",
 	L"Start at login", L"It runs in the top bar (purple ∑ icon). Click it to toggle %1 or to %2.",
 	L"Press ‹Alt›+‹Shift›+‹L› any time to open this help again.",
+	L"In any text field (browser, editor, terminal…) press ‹Alt›+‹L› to open the formula box.", L"The box switches to English input automatically. To type another language in the box, use your usual input switch key (e.g. ‹Super›+‹Space›).",
 };
 
 const Strings kKo = {
@@ -182,6 +186,7 @@ const Strings kKo = {
 	L"언어", L"시스템 설정 따르기", L"한국어",
 	L"로그인 시 자동 시작", L"화면 상단 막대 오른쪽에서 실행됩니다(보라색 ∑ 아이콘). 클릭하면 「%1」을 켜고 끄거나 「%2」할 수 있습니다.",
 	L"언제든지 ‹Alt›+‹Shift›+‹L›을 누르면 이 설명을 다시 열 수 있습니다.",
+	L"어느 입력란에서든(브라우저, 편집기, 터미널…) ‹Alt›+‹L›을 누르면 수식 상자가 열립니다.", L"상자를 열면 자동으로 영문 입력으로 바뀝니다. 상자에서 한글을 입력하려면 평소의 입력기 전환 키(예: ‹Super›+‹Space›)를 누르세요.",
 };
 
 const Strings kVi = {
@@ -216,6 +221,7 @@ const Strings kVi = {
 	L"Ngôn ngữ", L"Theo hệ thống", L"Tiếng Việt",
 	L"Khởi động khi đăng nhập", L"Chương trình chạy trên thanh trên cùng (biểu tượng ∑ màu tím). Nhấp vào để bật/tắt “%1” hoặc “%2”.",
 	L"Nhấn ‹Alt›+‹Shift›+‹L› bất cứ lúc nào để mở lại hướng dẫn này.",
+	L"Trong bất kỳ ô nhập nào (trình duyệt, trình soạn thảo, terminal…), nhấn ‹Alt›+‹L› để mở ô công thức.", L"Ô công thức tự chuyển sang gõ tiếng Anh. Muốn gõ tiếng Việt trong ô, dùng phím chuyển bộ gõ quen thuộc (ví dụ ‹Super›+‹Space›).",
 };
 
 const Strings kRu = {
@@ -250,6 +256,7 @@ const Strings kRu = {
 	L"Язык", L"Как в системе", L"Русский",
 	L"Запускать при входе", L"Программа работает в верхней панели (фиолетовый значок ∑). Нажмите на него, чтобы включить или выключить «%1» или выбрать «%2».",
 	L"Нажмите ‹Alt›+‹Shift›+‹L› в любой момент, чтобы снова открыть эту справку.",
+	L"В любом поле ввода (браузер, редактор, терминал…) нажмите ‹Alt›+‹L›, чтобы открыть окно формулы.", L"Окно автоматически переключает ввод на английский. Чтобы печатать на другом языке, используйте обычную клавишу смены раскладки (например, ‹Super›+‹Space›).",
 };
 
 const Strings kAr = {
@@ -284,6 +291,7 @@ const Strings kAr = {
 	L"اللغة", L"حسب لغة النظام", L"العربية",
 	L"التشغيل عند تسجيل الدخول", L"يعمل البرنامج في الشريط العلوي (أيقونة ∑ البنفسجية). انقر عليها لتشغيل «%1» أو إيقافه، أو لاختيار «%2».",
 	L"اضغط ‹Alt›+‹Shift›+‹L› في أي وقت لفتح هذه التعليمات مرة أخرى.",
+	L"في أي حقل إدخال (المتصفح، المحرر، الطرفية…) اضغط ‹Alt›+‹L› لفتح مربع الصيغة.", L"يتحول المربع تلقائيًا إلى الإدخال الإنجليزي. للكتابة بلغة أخرى داخل المربع، استخدم مفتاح تبديل الإدخال المعتاد (مثل ‹Super›+‹Space›).",
 };
 
 const Strings kEs = {
@@ -318,6 +326,7 @@ const Strings kEs = {
 	L"Idioma", L"Según el sistema", L"Español",
 	L"Iniciar al iniciar sesión", L"Se ejecuta en la barra superior (icono ∑ morado). Haz clic en él para activar o desactivar «%1» o para «%2».",
 	L"Pulsa ‹Alt›+‹Shift›+‹L› en cualquier momento para volver a abrir esta ayuda.",
+	L"En cualquier campo de texto (navegador, editor, terminal…) pulsa ‹Alt›+‹L› para abrir el cuadro de fórmulas.", L"El cuadro cambia automáticamente a entrada en inglés. Para escribir en otro idioma dentro del cuadro, usa tu tecla habitual para cambiar de método de entrada (p. ej. ‹Super›+‹Space›).",
 };
 
 const Strings kPt = {
@@ -352,6 +361,7 @@ const Strings kPt = {
 	L"Idioma", L"Seguir o sistema", L"Português (Brasil)",
 	L"Iniciar ao entrar", L"Ele roda na barra superior (ícone ∑ roxo). Clique nele para ligar ou desligar “%1” ou para “%2”.",
 	L"Pressione ‹Alt›+‹Shift›+‹L› a qualquer momento para abrir esta ajuda de novo.",
+	L"Em qualquer campo de texto (navegador, editor, terminal…) pressione ‹Alt›+‹L› para abrir a caixa de fórmulas.", L"A caixa muda automaticamente para entrada em inglês. Para digitar em outro idioma dentro da caixa, use sua tecla habitual de troca de método de entrada (ex.: ‹Super›+‹Space›).",
 };
 
 #ifdef _WIN32

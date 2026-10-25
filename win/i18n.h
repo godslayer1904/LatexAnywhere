@@ -44,7 +44,9 @@ struct Strings {
 	// Linux 版替换的文字（%1 = 自启菜单名，%2 = 退出菜单名）
 	const wchar_t* autostartLinux;
 	const wchar_t* trayLinux;
-	const wchar_t* helpKeyLinux;   // 说明窗口开头：随时按 Alt+Shift+L 再打开（Linux 没有常驻托盘可点）
+	const wchar_t* helpKeyLinux;
+	const wchar_t* basic0Linux;    // 基本用法第 1 条（Linux：框的位置由桌面决定，举 Linux 上的软件）
+	const wchar_t* imeLinux;       // 输入法第 1 条（IBus 下用平时的切换键，不是 Shift）   // 说明窗口开头：随时按 Alt+Shift+L 再打开（Linux 没有常驻托盘可点）
 };
 
 const Strings& Lang();   // 当前语言

@@ -75,6 +75,10 @@ private:
 	bool visible_ = false;
 	bool dark_ = true;
 	bool prevIme_ = false;
+	bool targetTerminal_ = false;   // 弹框时的目标是终端
+	bool wantPrimary_ = false;      // 目标不经无障碍接口可见：框拿到焦点后读主选区
+	std::u16string lastPrimary_;    // 上次从主选区带进来的内容
+	void ReadPrimary();
 	bool lastShift_ = false;
 	std::string preedit_;
 	double lastToggle_ = -1e9;

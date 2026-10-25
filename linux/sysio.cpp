@@ -146,12 +146,22 @@ void SelectionInit() {
 	}
 }
 
-std::u16string SelectionGet(bool* fromAtspi) {
+bool TargetIsTerminal() {
+	if (!g_focused || !HasState(g_focused, ATSPI_STATE_FOCUSED) || !WindowActive(g_focused)) return false;
+	GError* e = nullptr;
+	AtspiRole r = atspi_accessible_get_role(g_focused, &e);
+	g_clear_error(&e);
+	return r == ATSPI_ROLE_TERMINAL;
+}
+
+std::u16string SelectionGet(bool* fromAtspi, bool* known) {
 	*fromAtspi = false;
+	if (known) *known = false;
 	if (!g_focused) { if (getenv("LA_TRACE")) Log("跟踪：AT-SPI 没有焦点对象"); return {}; }
 	bool f = HasState(g_focused, ATSPI_STATE_FOCUSED), w = WindowActive(g_focused);
 	if (getenv("LA_TRACE")) Log("跟踪：AT-SPI 焦点对象 focused=%d 窗口活动=%d", (int)f, (int)w);
 	if (!f || !w) return {};
+	if (known) *known = true;   // 焦点所在的程序经无障碍接口可见：它说没选中就是没选中
 	AtspiText* t = atspi_accessible_get_text_iface(g_focused);
 	if (!t) return {};
 	std::u16string out;

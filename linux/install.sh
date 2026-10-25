@@ -9,12 +9,14 @@ BIN=$HOME/.local/bin
 APPS=$HOME/.local/share/applications
 ICONS=$HOME/.local/share/icons/hicolor/scalable/apps
 RULE=/etc/udev/rules.d/60-latexanywhere-uinput.rules
+# 文件名必须等于程序标识：GNOME 按它把窗口和图标对上（否则 Dock、任务切换里显示通用图标）
+DESKTOP=$APPS/io.github.godslayer1904.LatexAnywhere.desktop
 say() { printf '\033[1;35m==>\033[0m %s\n' "$*"; }
 
 if [ "${1:-}" = "--uninstall" ]; then
 	"$BIN/latexanywhere" --quit 2>/dev/null || true
 	"$BIN/latexanywhere" --uninstall-cleanup 2>/dev/null || true   # 去掉 GNOME 快捷键和自启项
-	rm -f "$BIN/latexanywhere" "$APPS/latexanywhere.desktop" "$ICONS/latexanywhere.svg"
+	rm -f "$BIN/latexanywhere" "$DESKTOP" "$APPS/latexanywhere.desktop" "$ICONS/latexanywhere.svg"
 	[ -f "$RULE" ] && sudo rm -f "$RULE" && sudo udevadm control --reload || true
 	say "已卸载（设置留在 ~/.config/LatexAnywhere，不要可以手动删）"
 	exit 0
@@ -56,7 +58,8 @@ fi
 "$BIN/latexanywhere" --quit 2>/dev/null || true   # 升级：先停掉旧的
 mv -f "$BIN/latexanywhere.new" "$BIN/latexanywhere"
 
-cat >"$APPS/latexanywhere.desktop" <<EOF
+rm -f "$APPS/latexanywhere.desktop"   # 旧版的文件名
+cat >"$DESKTOP" <<EOF
 [Desktop Entry]
 Type=Application
 Name=LatexAnywhere
@@ -64,6 +67,7 @@ Comment=Alt+L: type LaTeX anywhere, the Obsidian Latex Suite way
 Exec="$BIN/latexanywhere"
 Icon=latexanywhere
 Categories=Utility;Education;
+StartupWMClass=io.github.godslayer1904.LatexAnywhere
 EOF
 
 # 上屏用的虚拟键盘：/dev/uinput 默认只有 root 能写。uaccess 让当前坐在电脑前的用户可写（logind 管理，切换用户即收回）
@@ -76,7 +80,7 @@ fi
 
 # 开机自启 + 立即启动（首次启动会弹使用说明）
 mkdir -p "$HOME/.config/autostart"
-cp "$APPS/latexanywhere.desktop" "$HOME/.config/autostart/latexanywhere.desktop"
+cp "$DESKTOP" "$HOME/.config/autostart/latexanywhere.desktop"
 echo "X-GNOME-Autostart-enabled=true" >>"$HOME/.config/autostart/latexanywhere.desktop"
 # 交给 systemd 用户实例驻留（不随终端、ssh 关闭而退出）；没有 systemd 就用 nohup
 if command -v systemd-run >/dev/null && systemd-run --user --collect --quiet "$BIN/latexanywhere" --foreground 2>/dev/null; then :
